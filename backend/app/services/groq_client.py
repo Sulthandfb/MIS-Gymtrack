@@ -1,8 +1,6 @@
-# app/services/groq_client.py
 import httpx
 from app.config import settings
 
-# ✅ Tambahkan class untuk kompatibilitas dengan product insights
 class GroqClientWrapper:
     def __init__(self, api_key: str):
         self.api_key = api_key
@@ -13,15 +11,11 @@ class GroqClientWrapper:
             self.client = client
         
         async def create(self, model: str, messages: list, temperature: float = 0.7, max_tokens: int = 1000):
-            """
-            Create chat completion - compatible with product insights
-            """
             headers = {
                 "Authorization": f"Bearer {self.client.api_key}",
                 "Content-Type": "application/json"
             }
             
-            # ✅ Debug: Print request data
             data = {
                 "model": model,
                 "messages": messages,
@@ -42,7 +36,6 @@ class GroqClientWrapper:
                         json=data
                     )
                     
-                    # ✅ Debug response
                     print(f"🔍 Groq Response Status: {response.status_code}")
                     if response.status_code != 200:
                         print(f"🔍 Groq Response Text: {response.text}")
@@ -52,7 +45,6 @@ class GroqClientWrapper:
                     
                     print(f"🟢 Groq API Success!")
                     
-                    # Return object with choices attribute
                     class MockResponse:
                         def __init__(self, data):
                             self.choices = [MockChoice(data["choices"][0])]
@@ -79,22 +71,16 @@ class GroqClientWrapper:
     def chat(self):
         return type('Chat', (), {'completions': self.ChatCompletions(self)})()
 
-# ✅ Function yang dibutuhkan oleh product.py
 def get_groq_client():
-    """
-    Get Groq client instance for product insights
-    """
     return GroqClientWrapper(api_key=settings.GROQ_API_KEY)
 
-# ✅ Function yang sudah ada - JANGAN DIUBAH (untuk page lain)
 async def generate_groq_insight(prompt: str) -> str:
     headers = {
         "Authorization": f"Bearer {settings.GROQ_API_KEY}",
         "Content-Type": "application/json"
     }
-    # ✅ Update model here too for consistency
     data = {
-        "model": "llama-3.1-8b-instant",  # ✅ Updated model
+        "model": "llama-3.1-8b-instant",
         "messages": [
             {"role": "system", "content": "You are an expert in gym member behavior analytics."},
             {"role": "user", "content": prompt}
@@ -110,9 +96,28 @@ async def generate_groq_insight(prompt: str) -> str:
             )
             response.raise_for_status()
             res_data = response.json()
-            # ✅ Tambahkan print/cek struktur respons
             print("🟢 Groq Response:", res_data)
             return res_data["choices"][0]["message"]["content"]
     except Exception as e:
         print("🔴 ERROR from Groq API:", e)
         return "Gagal membaca respon dari Groq AI."
+
+# ✅ Tambahan: fungsi yang dibutuhkan oleh finance.py
+async def generate_ai_insights(
+    db,
+    date_filter,
+    overview,
+    revenue_breakdown,
+    expense_breakdown,
+    monthly_trend
+):
+    prompt = f"""
+    Buat insight dan rekomendasi keuangan berdasarkan data berikut:
+    - Statistik Umum: {overview}
+    - Pendapatan: {revenue_breakdown}
+    - Pengeluaran: {expense_breakdown}
+    - Tren Bulanan (6 bulan): {monthly_trend}
+
+    Berikan ringkasan dalam bentuk poin dan rekomendasi konkret untuk manajemen gym.
+    """
+    return await generate_groq_insight(prompt)

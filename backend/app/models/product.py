@@ -51,7 +51,7 @@ class Sale(Base):
     
     # Relationships
     sale_items = relationship("SaleItem", back_populates="sale")
-    # member relationship akan menggunakan existing member table
+    member = relationship("Member", back_populates="sales")
 
 class SaleItem(Base):
     __tablename__ = "sale_item"

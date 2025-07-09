@@ -20,6 +20,18 @@ import type {
   SegmentationData,
   CrossSellData,
 } from "@/types/product"
+import type {
+  FinanceOverviewStats,
+  RevenueBreakdown,
+  ExpenseBreakdown,
+  MonthlyTrendData,
+  CashFlowData,
+  BudgetVarianceData,
+  FinancialTargetData,
+  PaymentMethodData,
+  FinanceInsight,
+  FinancialForecast,
+} from "@/types/finance"
 
 const API_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000"
 
@@ -268,6 +280,115 @@ export const fetchProductCategories = async (): Promise<CategoryData[]> => {
     return res.data as CategoryData[]
   } catch (error) {
     console.error("Error fetching product categories:", error)
+    throw error
+  }
+}
+
+// ========================================
+// FINANCE API FUNCTIONS
+// ========================================
+export const fetchFinanceOverview = async (period: string): Promise<FinanceOverviewStats> => {
+  try {
+    const res = await axios.get(`${API_URL}/api/finance/overview?period=${period}`)
+    return res.data as FinanceOverviewStats
+  } catch (error) {
+    console.error("Error fetching finance overview:", error)
+    throw error
+  }
+}
+
+export const fetchRevenueBreakdown = async (period: string): Promise<RevenueBreakdown> => {
+  try {
+    const res = await axios.get(`${API_URL}/api/finance/revenue-breakdown?period=${period}`)
+    return res.data as RevenueBreakdown
+  } catch (error) {
+    console.error("Error fetching revenue breakdown:", error)
+    throw error
+  }
+}
+
+export const fetchExpenseBreakdown = async (period: string): Promise<ExpenseBreakdown> => {
+  try {
+    const res = await axios.get(`${API_URL}/api/finance/expense-breakdown?period=${period}`)
+    return res.data as ExpenseBreakdown
+  } catch (error) {
+    console.error("Error fetching expense breakdown:", error)
+    throw error
+  }
+}
+
+export const fetchMonthlyTrend = async (months: number): Promise<MonthlyTrendData[]> => {
+  try {
+    const res = await axios.get(`${API_URL}/api/finance/monthly-trend?months=${months}`)
+    return res.data as MonthlyTrendData[]
+  } catch (error) {
+    console.error("Error fetching monthly trend:", error)
+    throw error
+  }
+}
+
+export const fetchCashFlow = async (days: number): Promise<CashFlowData[]> => {
+  try {
+    const res = await axios.get(`${API_URL}/api/finance/cash-flow?days=${days}`)
+    return res.data as CashFlowData[]
+  } catch (error) {
+    console.error("Error fetching cash flow:", error)
+    throw error
+  }
+}
+
+export const fetchBudgetVariance = async (year: number, month?: number): Promise<BudgetVarianceData[]> => {
+  try {
+    let url = `${API_URL}/api/finance/budget-variance?year=${year}`
+    if (month) url += `&month=${month}`
+
+    const res = await axios.get(url)
+    return res.data as BudgetVarianceData[]
+  } catch (error) {
+    console.error("Error fetching budget variance:", error)
+    throw error
+  }
+}
+
+export const fetchFinancialTargets = async (year: number, month?: number): Promise<FinancialTargetData[]> => {
+  try {
+    let url = `${API_URL}/api/finance/targets?year=${year}`
+    if (month) url += `&month=${month}`
+
+    const res = await axios.get(url)
+    return res.data as FinancialTargetData[]
+  } catch (error) {
+    console.error("Error fetching financial targets:", error)
+    throw error
+  }
+}
+
+export const fetchPaymentMethods = async (period: string): Promise<PaymentMethodData[]> => {
+  try {
+    const res = await axios.get(`${API_URL}/api/finance/payment-methods?period=${period}`)
+    return res.data as PaymentMethodData[]
+  } catch (error) {
+    console.error("Error fetching payment methods:", error)
+    throw error
+  }
+}
+
+export const fetchFinancialInsights = async (period: string): Promise<FinanceInsight[]> => {
+  try {
+    const res = await axios.get(`${API_URL}/api/finance/insights?period=${period}`)
+    return res.data as FinanceInsight[]
+  } catch (error) {
+    console.error("Error fetching financial insights:", error)
+    throw error
+  }
+}
+
+export const fetchCashFlowForecast = async (months: number): Promise<FinancialForecast> => {
+  try {
+    const res = await axios.get(`${API_URL}/api/finance/forecast?months=${months}`)
+    return res.data as FinancialForecast
+  } catch (error) {
+    console.error("Error fetching cash flow forecast:", error)
     throw error
   }
 }
