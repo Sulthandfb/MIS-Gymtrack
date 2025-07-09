@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from datetime import datetime
 import calendar
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from sqlalchemy import text
 
 
@@ -81,6 +81,38 @@ async def get_ai_insights(db: Session = Depends(get_db)):
     except Exception as e:
         print(f"Error in get_finance_ai_insight: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+# ========================================
+# NEW: TRANSACTIONS FILTERED ENDPOINT
+# ========================================
+@router.get("/transactions")
+async def get_filtered_transactions(
+    type: Optional[str] = Query(None, description="Type of transaction (income or expense)"),
+    category: Optional[str] = Query(None, description="Category of transaction"),
+    date_from: Optional[str] = Query(None, description="Start date (YYYY-MM-DD)"),
+    date_to: Optional[str] = Query(None, description="End date (YYYY-MM-DD)"),
+    limit: int = Query(20, ge=1, description="Number of transactions to return"),
+    offset: int = Query(0, ge=0, description="Offset for pagination"),
+    db: Session = Depends(get_db)
+):
+    """
+    Fetches a list of transactions (income or expense) based on provided filters.
+    """
+    try:
+        # Panggil fungsi CRUD yang akan menangani logika filtering database
+        # Anda perlu membuat fungsi ini di app/crud/finance.py
+        transactions_data, categories_data = finance_crud.get_filtered_transactions(
+            db, type, category, date_from, date_to, limit, offset
+        )
+
+        return {
+            "transactions": transactions_data,
+            "categories": categories_data
+        }
+    except Exception as e:
+        print(f"Error in get_filtered_transactions: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.get("/income-analysis")
 async def get_income_analysis(db: Session = Depends(get_db)):

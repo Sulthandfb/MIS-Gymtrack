@@ -2,6 +2,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import text
 from datetime import datetime
 import calendar
+from typing import List, Dict, Any, Optional, Tuple
 
 # === GET /api/finance/summary ===
 def get_financial_summary(db: Session, year: int):
@@ -136,13 +137,29 @@ def get_expense_breakdown(db: Session, year: int):
 # === GET /api/finance/recent-transactions ===
 def get_recent_transactions(db: Session, limit: int):
     income_query = text("""
-        SELECT 'income' as type, income_type as category, amount, payment_method, transaction_date, description
+        SELECT 
+            income_id AS id, -- Tambahkan ID untuk kunci unik di frontend
+            'income' as type, 
+            income_type as category, 
+            amount, 
+            payment_method, 
+            transaction_date, 
+            description,
+            created_at -- Tambahkan created_at untuk sorting jika perlu
         FROM income_transaction
         ORDER BY transaction_date DESC, created_at DESC
         LIMIT :limit
     """)
     expense_query = text("""
-        SELECT 'expense' as type, expense_category as category, amount, payment_method, transaction_date, description
+        SELECT 
+            expense_id AS id, -- Tambahkan ID untuk kunci unik di frontend
+            'expense' as type, 
+            expense_category as category, 
+            amount, 
+            payment_method, 
+            transaction_date, 
+            description,
+            created_at -- Tambahkan created_at untuk sorting jika perlu
         FROM expense_transaction
         ORDER BY transaction_date DESC, created_at DESC
         LIMIT :limit
@@ -153,13 +170,146 @@ def get_recent_transactions(db: Session, limit: int):
     all_data = []
     for row in income_results + expense_results:
         all_data.append({
-            "id": f"{row.type}_{row.transaction_date.strftime('%Y%m%d%H%M%S')}",
+            # Penting: Gabungkan ID dan tipe untuk memastikan keunikan key di React
+            "id": f"{row.type}_{row.id}", 
             "date": row.transaction_date.strftime("%Y-%m-%d"),
             "type": row.type,
             "category": row.category.replace("_", " ").title(),
             "amount": int(row.amount),
             "payment_method": row.payment_method,
             "description": row.description,
-            "status": "completed"
+            "status": "Completed" # Asumsi status default
         })
-    return sorted(all_data, key=lambda x: x["date"], reverse=True)[:limit]
+    # Urutkan berdasarkan tanggal, lalu ID untuk konsistensi
+    return sorted(all_data, key=lambda x: (x["date"], x["id"]), reverse=True)[:limit]
+
+
+# === NEW: GET /api/finance/transactions (Filtered Transactions) ===
+def get_filtered_transactions(
+    db: Session,
+    type: Optional[str] = None,
+    category: Optional[str] = None,
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
+    limit: int = 20,
+    offset: int = 0
+) -> Tuple[List[Dict[str, Any]], List[str]]:
+    """
+    Fetches filtered transactions and a list of available categories.
+    """
+    transactions = []
+    all_categories_set = set() # Menggunakan set untuk menyimpan kategori unik
+
+    # Convert category from frontend format (Title Case with spaces) to database format (snake_case)
+    db_category = None
+    if category:
+        db_category = category.lower().replace(" ", "_")
+
+
+    # --- Fetch Income Transactions ---
+    if type == "income" or type is None:
+        income_query_str = """
+            SELECT
+                income_id AS id,
+                transaction_date AS date,
+                income_type AS category,
+                amount,
+                payment_method,
+                description,
+                'income' AS type,
+                'Completed' AS status -- Asumsi status default
+            FROM income_transaction
+            WHERE 1=1
+        """
+        income_params = {}
+
+        if db_category: # Use db_category for filtering
+            income_query_str += " AND income_type = :db_category"
+            income_params["db_category"] = db_category
+        if date_from:
+            income_query_str += " AND transaction_date >= :date_from"
+            income_params["date_from"] = date_from
+        if date_to:
+            income_query_str += " AND transaction_date <= :date_to"
+            income_params["date_to"] = date_to
+        
+        # Add filtering specific to the year 2024 for data consistency based on provided SQL
+        income_query_str += " AND EXTRACT(YEAR FROM transaction_date) = 2024"
+
+        # Fetch all income categories for the filter dropdown (still fetches original DB categories)
+        income_categories_query = text("SELECT DISTINCT income_type FROM income_transaction WHERE EXTRACT(YEAR FROM transaction_date) = 2024")
+        income_categories_results = db.execute(income_categories_query).fetchall()
+        for row in income_categories_results:
+            all_categories_set.add(row.income_type)
+
+        # Order for the main transaction list
+        income_query_str += " ORDER BY transaction_date DESC, income_id DESC"
+        
+        income_results = db.execute(text(income_query_str), income_params).fetchall()
+        for row in income_results:
+            row_dict = dict(row._mapping)
+            # Format category for frontend display
+            row_dict['category'] = row_dict['category'].replace("_", " ").title() 
+            row_dict['id'] = f"income_{row_dict['id']}" 
+            transactions.append(row_dict)
+
+    # --- Fetch Expense Transactions ---
+    if type == "expense" or type is None:
+        expense_query_str = """
+            SELECT
+                expense_id AS id,
+                transaction_date AS date,
+                expense_category AS category,
+                amount,
+                payment_method,
+                description,
+                'expense' AS type,
+                'Completed' AS status -- Asumsi status default
+            FROM expense_transaction
+            WHERE 1=1
+        """
+        expense_params = {}
+
+        if db_category: # Use db_category for filtering
+            expense_query_str += " AND expense_category = :db_category"
+            expense_params["db_category"] = db_category
+        if date_from:
+            expense_query_str += " AND transaction_date >= :date_from"
+            expense_params["date_from"] = date_from
+        if date_to:
+            expense_query_str += " AND transaction_date <= :date_to"
+            expense_params["date_to"] = date_to
+
+        # Add filtering specific to the year 2024 for data consistency
+        expense_query_str += " AND EXTRACT(YEAR FROM transaction_date) = 2024"
+
+        # Fetch all expense categories for the filter dropdown (still fetches original DB categories)
+        expense_categories_query = text("SELECT DISTINCT expense_category FROM expense_transaction WHERE EXTRACT(YEAR FROM transaction_date) = 2024")
+        expense_categories_results = db.execute(expense_categories_query).fetchall()
+        for row in expense_categories_results:
+            all_categories_set.add(row.expense_category)
+
+        # Order for the main transaction list
+        expense_query_str += " ORDER BY transaction_date DESC, expense_id DESC"
+
+        expense_results = db.execute(text(expense_query_str), expense_params).fetchall()
+        for row in expense_results:
+            row_dict = dict(row._mapping)
+            # Format category for frontend display
+            row_dict['category'] = row_dict['category'].replace("_", " ").title()
+            row_dict['id'] = f"expense_{row_dict['id']}"
+            transactions.append(row_dict)
+
+    # --- Combine and Sort All Transactions ---
+    # Jika type adalah None (ingin semua transaksi), gabungkan dan sort
+    # Jika type ditentukan, transactions sudah hanya berisi tipe itu dan perlu diurutkan
+    transactions.sort(key=lambda x: (x['date'], x['id']), reverse=True)
+
+
+    # --- Apply Pagination (Limit and Offset) ---
+    final_transactions = transactions[offset : offset + limit]
+
+    # Convert category names for the return list to Title Case
+    formatted_categories_list = [cat.replace("_", " ").title() for cat in all_categories_set]
+
+    return final_transactions, sorted(list(formatted_categories_list))

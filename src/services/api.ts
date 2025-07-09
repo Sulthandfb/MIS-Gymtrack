@@ -28,6 +28,8 @@ import {
   type AIInsight,
   type IncomeAnalysis,
   type ExpenseAnalysis,
+  type TransactionFilters,
+  type FilteredTransactionsResponse,
   handleApiError,
   API_URL,
 } from "@/types/finance"
@@ -327,6 +329,25 @@ export const fetchRecentTransactions = async (limit = 10): Promise<Transaction[]
     return res.data as Transaction[]
   } catch (error) {
     console.error("Error fetching recent transactions:", error)
+    throw error
+  }
+}
+
+// ✅ NEW: Filtered transactions with pagination
+export const fetchFilteredTransactions = async (filters: TransactionFilters): Promise<FilteredTransactionsResponse> => {
+  try {
+    const params = new URLSearchParams()
+    if (filters.type) params.append("type", filters.type)
+    if (filters.category) params.append("category", filters.category)
+    if (filters.dateFrom) params.append("date_from", filters.dateFrom)
+    if (filters.dateTo) params.append("date_to", filters.dateTo)
+    if (filters.limit) params.append("limit", filters.limit.toString())
+    if (filters.offset) params.append("offset", filters.offset.toString())
+
+    const res = await axios.get(`${API_URL}/api/finance/transactions?${params.toString()}`)
+    return res.data as FilteredTransactionsResponse
+  } catch (error) {
+    console.error("Error fetching filtered transactions:", error)
     throw error
   }
 }

@@ -101,6 +101,22 @@ export interface ExpenseAnalysis {
   monthly_chart_data: ExpenseMonthlyData[]
 }
 
+// Filter Types
+export interface TransactionFilters {
+  type?: "income" | "expense"
+  category?: string
+  dateFrom?: string
+  dateTo?: string
+  limit?: number
+  offset?: number
+}
+
+export interface FilteredTransactionsResponse {
+  transactions: Transaction[]
+  total: number
+  categories: string[]
+}
+
 // Error Handling
 export const handleApiError = (error: unknown, context: string) => {
   if (isAxiosError(error)) {
