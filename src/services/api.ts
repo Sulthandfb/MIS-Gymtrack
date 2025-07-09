@@ -1,4 +1,4 @@
-import axios, { type AxiosError, isAxiosError } from "axios"
+import axios from "axios"
 import type {
   MemberStats,
   MemberActivity,
@@ -20,20 +20,17 @@ import type {
   SegmentationData,
   CrossSellData,
 } from "@/types/product"
-import type {
-  FinanceOverviewStats,
-  RevenueBreakdown,
-  ExpenseBreakdown,
-  MonthlyTrendData,
-  CashFlowData,
-  BudgetVarianceData,
-  FinancialTargetData,
-  PaymentMethodData,
-  FinanceInsight,
-  FinancialForecast,
+import {
+  type FinancialSummary,
+  type IncomeVsExpenseData,
+  type BreakdownData,
+  type Transaction,
+  type AIInsight,
+  type IncomeAnalysis,
+  type ExpenseAnalysis,
+  handleApiError,
+  API_URL,
 } from "@/types/finance"
-
-const API_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000"
 
 // ========================================
 // MEMBER API FUNCTIONS
@@ -169,7 +166,6 @@ export const fetchProducts = async (filters: {
     if (filters.category) params.append("category", filters.category)
     if (filters.lowStock !== undefined) params.append("lowStock", filters.lowStock.toString())
     if (filters.sortBy) params.append("sortBy", filters.sortBy)
-
     const res = await axios.get(`${API_URL}/api/product/?${params.toString()}`)
     return res.data as Product[]
   } catch (error) {
@@ -186,7 +182,6 @@ export const fetchSegmentationData = async (filters: {
     const params = new URLSearchParams()
     if (filters.goal) params.append("goal", filters.goal)
     if (filters.ageRange) params.append("age_range", filters.ageRange)
-
     const res = await axios.get(`${API_URL}/api/product/segmentation?${params.toString()}`)
     return res.data as SegmentationData[]
   } catch (error) {
@@ -214,7 +209,6 @@ export const fetchSegmentationInsights = async (filters: {
     const params = new URLSearchParams()
     if (filters.goal) params.append("goal", filters.goal)
     if (filters.ageRange) params.append("age_range", filters.ageRange)
-
     const res = await axios.get(`${API_URL}/api/product/segmentation-insights?${params.toString()}`)
     return res.data as ProductInsight[]
   } catch (error) {
@@ -287,108 +281,108 @@ export const fetchProductCategories = async (): Promise<CategoryData[]> => {
 // ========================================
 // FINANCE API FUNCTIONS
 // ========================================
-export const fetchFinanceOverview = async (period: string): Promise<FinanceOverviewStats> => {
+export const fetchFinancialSummary = async (): Promise<FinancialSummary> => {
   try {
-    const res = await axios.get(`${API_URL}/api/finance/overview?period=${period}`)
-    return res.data as FinanceOverviewStats
+    const res = await axios.get(`${API_URL}/api/finance/summary`)
+    return res.data as FinancialSummary
   } catch (error) {
-    console.error("Error fetching finance overview:", error)
+    console.error("Error fetching financial summary:", error)
     throw error
   }
 }
 
-export const fetchRevenueBreakdown = async (period: string): Promise<RevenueBreakdown> => {
+export const fetchIncomeVsExpenses = async (): Promise<IncomeVsExpenseData[]> => {
   try {
-    const res = await axios.get(`${API_URL}/api/finance/revenue-breakdown?period=${period}`)
-    return res.data as RevenueBreakdown
+    const res = await axios.get(`${API_URL}/api/finance/income-vs-expenses`)
+    return res.data as IncomeVsExpenseData[]
   } catch (error) {
-    console.error("Error fetching revenue breakdown:", error)
+    console.error("Error fetching income vs expenses:", error)
     throw error
   }
 }
 
-export const fetchExpenseBreakdown = async (period: string): Promise<ExpenseBreakdown> => {
+export const fetchIncomeBreakdown = async (): Promise<BreakdownData[]> => {
   try {
-    const res = await axios.get(`${API_URL}/api/finance/expense-breakdown?period=${period}`)
-    return res.data as ExpenseBreakdown
+    const res = await axios.get(`${API_URL}/api/finance/income-breakdown`)
+    return res.data as BreakdownData[]
+  } catch (error) {
+    console.error("Error fetching income breakdown:", error)
+    throw error
+  }
+}
+
+export const fetchExpenseBreakdown = async (): Promise<BreakdownData[]> => {
+  try {
+    const res = await axios.get(`${API_URL}/api/finance/expense-breakdown`)
+    return res.data as BreakdownData[]
   } catch (error) {
     console.error("Error fetching expense breakdown:", error)
     throw error
   }
 }
 
-export const fetchMonthlyTrend = async (months: number): Promise<MonthlyTrendData[]> => {
+export const fetchRecentTransactions = async (limit = 10): Promise<Transaction[]> => {
   try {
-    const res = await axios.get(`${API_URL}/api/finance/monthly-trend?months=${months}`)
-    return res.data as MonthlyTrendData[]
+    const res = await axios.get(`${API_URL}/api/finance/recent-transactions?limit=${limit}`)
+    return res.data as Transaction[]
   } catch (error) {
-    console.error("Error fetching monthly trend:", error)
+    console.error("Error fetching recent transactions:", error)
     throw error
   }
 }
 
-export const fetchCashFlow = async (days: number): Promise<CashFlowData[]> => {
+export const fetchFinanceAIInsights = async (): Promise<AIInsight[]> => {
   try {
-    const res = await axios.get(`${API_URL}/api/finance/cash-flow?days=${days}`)
-    return res.data as CashFlowData[]
+    const res = await axios.get(`${API_URL}/api/finance/ai-insights`)
+    return res.data as AIInsight[]
   } catch (error) {
-    console.error("Error fetching cash flow:", error)
+    console.error("Error fetching finance AI insights:", error)
     throw error
   }
 }
 
-export const fetchBudgetVariance = async (year: number, month?: number): Promise<BudgetVarianceData[]> => {
+export const fetchIncomeAnalysis = async (): Promise<IncomeAnalysis> => {
   try {
-    let url = `${API_URL}/api/finance/budget-variance?year=${year}`
-    if (month) url += `&month=${month}`
-
-    const res = await axios.get(url)
-    return res.data as BudgetVarianceData[]
+    const res = await axios.get(`${API_URL}/api/finance/income-analysis`)
+    return res.data as IncomeAnalysis
   } catch (error) {
-    console.error("Error fetching budget variance:", error)
+    console.error("Error fetching income analysis:", error)
     throw error
   }
 }
 
-export const fetchFinancialTargets = async (year: number, month?: number): Promise<FinancialTargetData[]> => {
+export const fetchExpenseAnalysis = async (): Promise<ExpenseAnalysis> => {
   try {
-    let url = `${API_URL}/api/finance/targets?year=${year}`
-    if (month) url += `&month=${month}`
-
-    const res = await axios.get(url)
-    return res.data as FinancialTargetData[]
+    const res = await axios.get(`${API_URL}/api/finance/expense-analysis`)
+    return res.data as ExpenseAnalysis
   } catch (error) {
-    console.error("Error fetching financial targets:", error)
+    console.error("Error fetching expense analysis:", error)
     throw error
   }
 }
 
-export const fetchPaymentMethods = async (period: string): Promise<PaymentMethodData[]> => {
+// Batch API call for finance dashboard
+export const fetchFinanceDashboardData = async () => {
   try {
-    const res = await axios.get(`${API_URL}/api/finance/payment-methods?period=${period}`)
-    return res.data as PaymentMethodData[]
+    const [summary, incomeVsExpenses, incomeBreakdown, expenseBreakdown, recentTransactions, aiInsights] =
+      await Promise.all([
+        fetchFinancialSummary(),
+        fetchIncomeVsExpenses(),
+        fetchIncomeBreakdown(),
+        fetchExpenseBreakdown(),
+        fetchRecentTransactions(10),
+        fetchFinanceAIInsights(),
+      ])
+    return {
+      summary,
+      incomeVsExpenses,
+      incomeBreakdown,
+      expenseBreakdown,
+      recentTransactions,
+      aiInsights,
+    }
   } catch (error) {
-    console.error("Error fetching payment methods:", error)
-    throw error
-  }
-}
-
-export const fetchFinancialInsights = async (period: string): Promise<FinanceInsight[]> => {
-  try {
-    const res = await axios.get(`${API_URL}/api/finance/insights?period=${period}`)
-    return res.data as FinanceInsight[]
-  } catch (error) {
-    console.error("Error fetching financial insights:", error)
-    throw error
-  }
-}
-
-export const fetchCashFlowForecast = async (months: number): Promise<FinancialForecast> => {
-  try {
-    const res = await axios.get(`${API_URL}/api/finance/forecast?months=${months}`)
-    return res.data as FinancialForecast
-  } catch (error) {
-    console.error("Error fetching cash flow forecast:", error)
+    handleApiError(error, "Finance Dashboard Data")
     throw error
   }
 }
@@ -407,31 +401,6 @@ export const checkProductApiHealth = async (): Promise<{ status: string; service
 }
 
 // ========================================
-// ERROR HANDLING UTILITIES
-// ========================================
-export const handleApiError = (error: unknown, context: string) => {
-  if (isAxiosError(error)) {
-    const axiosError = error as AxiosError
-    console.error(`${context} - Axios Error:`, {
-      message: axiosError.message,
-      status: axiosError.response?.status,
-      data: axiosError.response?.data,
-    })
-    if (axiosError.response?.status === 404) {
-      throw new Error(`${context}: Data not found`)
-    } else if (axiosError.response?.status === 500) {
-      throw new Error(`${context}: Server error`)
-    } else if (axiosError.response?.status === 422) {
-      throw new Error(`${context}: Invalid request parameters`)
-    }
-  }
-  if (error instanceof Error) {
-    throw new Error(`${context}: ${error.message}`)
-  }
-  throw new Error(`${context}: Unknown error`)
-}
-
-// ========================================
 // BATCH API CALLS FOR DASHBOARD
 // ========================================
 export const fetchProductDashboardData = async () => {
@@ -443,7 +412,6 @@ export const fetchProductDashboardData = async () => {
       fetchSalesTrend(7),
       fetchProductInsights(),
     ])
-
     return {
       stats,
       topSales,
@@ -482,7 +450,6 @@ export const fetchSegmentationDashboardData = async (filters: {
       fetchCrossSellData(),
       fetchSegmentationInsights(filters), // ✅ Now uses segmentation-specific insights
     ])
-
     return {
       segmentationData,
       crossSellData,
