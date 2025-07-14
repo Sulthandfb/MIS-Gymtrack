@@ -1,3 +1,5 @@
+// src/services/api.ts
+
 import axios from "axios"
 import type {
   MemberStats,
@@ -32,7 +34,40 @@ import {
   type FilteredTransactionsResponse,
   handleApiError,
   API_URL,
-} from "@/types/finance"
+} from "@/types/finance" // Assuming API_URL and handleApiError are defined here
+
+
+// NEW: Import Inventory Types
+import type {
+  EquipmentCategory,
+  Supplier,
+  Equipment,
+  EquipmentCreate,
+  EquipmentUpdate,
+  BackupEquipment,
+  BackupEquipmentCreate,
+  BackupEquipmentUpdate,
+  EquipmentMaintenance,
+  EquipmentMaintenanceCreate,
+  EquipmentMaintenanceUpdate,
+  EquipmentStatusLog,
+  EquipmentStatusLogCreate,
+  EquipmentUsageLog,
+  EquipmentUsageLogCreate,
+  EquipmentUsageLogUpdate,
+  AIInventoryRecommendation,
+  AIInventoryRecommendationCreate,
+  AIInventoryRecommendationUpdate,
+  InventorySummary,
+  EquipmentTableItem,
+  BrokenEquipmentTrend,
+  MostUsedEquipment,
+  RecentStatusLog,
+  InventoryTrends,
+  InventoryFilters,
+  InventoryDashboardData // Combined type for initial load
+} from "@/types/inventory"
+
 
 // ========================================
 // MEMBER API FUNCTIONS
@@ -202,7 +237,7 @@ export const fetchCrossSellData = async (): Promise<CrossSellData[]> => {
   }
 }
 
-// ✅ NEW: Separate endpoint for segmentation insights
+// ✅ UPDATED: Use segmentation-specific insights
 export const fetchSegmentationInsights = async (filters: {
   goal?: string
   ageRange?: string
@@ -409,20 +444,174 @@ export const fetchFinanceDashboardData = async () => {
 }
 
 // ========================================
-// API HEALTH CHECK
+// NEW: INVENTORY API FUNCTIONS
 // ========================================
-export const checkProductApiHealth = async (): Promise<{ status: string; service: string; version: string }> => {
+
+export const fetchInventorySummary = async (): Promise<InventorySummary> => {
   try {
-    const res = await axios.get<{ status: string; service: string; version: string }>(`${API_URL}/api/product/health`)
-    return res.data
+    const res = await axios.get(`${API_URL}/api/inventory/summary`);
+    return res.data as InventorySummary;
   } catch (error) {
-    console.error("Product API health check failed:", error)
-    throw error
+    console.error("Error fetching inventory summary:", error);
+    throw error;
   }
-}
+};
+
+export const fetchDashboardEquipmentList = async (filters?: InventoryFilters): Promise<EquipmentTableItem[]> => {
+  try {
+    const params = new URLSearchParams();
+    if (filters?.status) params.append("status", filters.status);
+    if (filters?.category_name) params.append("category_name", filters.category_name);
+    if (filters?.search_query) params.append("search_query", filters.search_query);
+    if (filters?.skip) params.append("skip", filters.skip.toString());
+    if (filters?.limit) params.append("limit", filters.limit.toString());
+
+    const res = await axios.get(`${API_URL}/api/inventory/dashboard-equipment?${params.toString()}`);
+    return res.data as EquipmentTableItem[];
+  } catch (error) {
+    console.error("Error fetching dashboard equipment list:", error);
+    throw error;
+  }
+};
+
+export const fetchInventoryTrends = async (numWeeks: number = 12): Promise<InventoryTrends> => {
+  try {
+    const res = await axios.get(`${API_URL}/api/inventory/trends?num_weeks=${numWeeks}`);
+    return res.data as InventoryTrends;
+  } catch (error) {
+    console.error("Error fetching inventory trends:", error);
+    throw error;
+  }
+};
+
+export const fetchAIRecommendations = async (managerDecision?: string): Promise<AIInventoryRecommendation[]> => {
+  try {
+    const params = new URLSearchParams();
+    if (managerDecision) params.append("manager_decision", managerDecision);
+
+    const res = await axios.get(`${API_URL}/api/inventory/ai-recommendations?${params.toString()}`);
+    return res.data as AIInventoryRecommendation[];
+  } catch (error) {
+    console.error("Error fetching AI recommendations:", error);
+    throw error;
+  }
+};
+
+export const updateAIRecommendationDecision = async (recommendationId: number, updateData: AIInventoryRecommendationUpdate): Promise<AIInventoryRecommendation> => {
+  try {
+    const res = await axios.put(`${API_URL}/api/inventory/ai-recommendations/${recommendationId}`, updateData);
+    return res.data as AIInventoryRecommendation;
+  } catch (error) {
+    console.error(`Error updating AI recommendation ${recommendationId}:`, error);
+    throw error;
+  }
+};
+
+export const takeEquipmentFromBackup = async (equipmentId: number, quantityToTake: number = 1, changedBy: string = "Manager"): Promise<Equipment> => {
+  try {
+    const res = await axios.post(`${API_URL}/api/inventory/equipment/${equipmentId}/take-from-backup`, null, {
+      params: { quantity_to_take: quantityToTake, changed_by: changedBy }
+    });
+    return res.data as Equipment;
+  } catch (error) {
+    console.error(`Error taking equipment ${equipmentId} from backup:`, error);
+    throw error;
+  }
+};
+
+export const updateEquipmentStatus = async (equipmentId: number, newStatus: string, changedBy: string = "Manager", changeReason?: string): Promise<Equipment> => {
+  try {
+    const res = await axios.put(`${API_URL}/api/inventory/equipment/${equipmentId}/status`, null, {
+      params: { new_status: newStatus, changed_by: changedBy, change_reason: changeReason }
+    });
+    return res.data as Equipment;
+  } catch (error) {
+    console.error(`Error updating equipment ${equipmentId} status to ${newStatus}:`, error);
+    throw error;
+  }
+};
+
+export const fetchEquipmentCategories = async (): Promise<EquipmentCategory[]> => {
+  try {
+    const res = await axios.get(`${API_URL}/api/inventory/categories`);
+    return res.data as EquipmentCategory[];
+  } catch (error) {
+    console.error("Error fetching equipment categories:", error);
+    throw error;
+  }
+};
+
+export const fetchEquipmentList = async (filters?: InventoryFilters): Promise<Equipment[]> => {
+  try {
+    const params = new URLSearchParams();
+    if (filters?.status) params.append("status", filters.status);
+    if (filters?.category_name) params.append("category_name", filters.category_name);
+    if (filters?.search_query) params.append("search_query", filters.search_query);
+    if (filters?.skip) params.append("skip", filters.skip.toString());
+    if (filters?.limit) params.append("limit", filters.limit.toString());
+
+    const res = await axios.get(`${API_URL}/api/inventory/equipment?${params.toString()}`);
+    return res.data as Equipment[];
+  } catch (error) {
+    console.error("Error fetching equipment list:", error);
+    throw error;
+  }
+};
+
+export const createEquipment = async (equipmentData: EquipmentCreate): Promise<Equipment> => {
+  try {
+    const res = await axios.post(`${API_URL}/api/inventory/equipment`, equipmentData);
+    return res.data as Equipment;
+  } catch (error) {
+    console.error("Error creating equipment:", error);
+    throw error;
+  }
+};
+
+export const updateEquipment = async (equipmentId: number, updateData: EquipmentUpdate): Promise<Equipment> => {
+  try {
+    const res = await axios.put(`${API_URL}/api/inventory/equipment/${equipmentId}`, updateData);
+    return res.data as Equipment;
+  } catch (error) {
+    console.error(`Error updating equipment ${equipmentId}:`, error);
+    throw error;
+  }
+};
+
+export const deleteEquipment = async (equipmentId: number): Promise<void> => {
+  try {
+    await axios.delete(`${API_URL}/api/inventory/equipment/${equipmentId}`);
+  } catch (error) {
+    console.error(`Error deleting equipment ${equipmentId}:`, error);
+    throw error;
+  }
+};
+
+
+// Combined API call for inventory dashboard
+export const fetchInventoryDashboardData = async (filters?: InventoryFilters): Promise<InventoryDashboardData> => {
+  try {
+    const [summary, equipmentList, trends, categories] = await Promise.all([
+      fetchInventorySummary(),
+      fetchDashboardEquipmentList(filters),
+      fetchInventoryTrends(),
+      fetchEquipmentCategories()
+    ]);
+    return {
+      summary,
+      equipmentList,
+      trends,
+      equipmentCategories: categories
+    };
+  } catch (error) {
+    handleApiError(error, "Inventory Dashboard Data");
+    throw error;
+  }
+};
+
 
 // ========================================
-// BATCH API CALLS FOR DASHBOARD
+// BATCH API CALLS FOR DASHBOARD (EXISTING)
 // ========================================
 export const fetchProductDashboardData = async () => {
   try {

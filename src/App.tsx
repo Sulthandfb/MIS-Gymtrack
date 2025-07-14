@@ -6,6 +6,7 @@ import TrainerDetail from "@/pages/TrainerDetail";
 import ProductsDashboard from "@/pages/ProductDashboard";
 import FinanceDashboard from "@/pages/FinanceDashboard"; // Pastikan ini diimpor jika ada
 import ProtectedRoute from "@/components/protected-route"; // Pastikan ProtectedRoute diimpor
+import InventoryDashboard from './pages/InventoryDashboard';
 
 // Komponen pembantu untuk meneruskan trainerId ke TrainerDetail
 const TrainerDetailWrapper = () => {
@@ -26,6 +27,7 @@ function App() {
           <Route path="/trainer/:trainerId" element={<TrainerDetailWrapper />} />
           <Route path="/products" element={<ProductsDashboard />} />
           <Route path="/finance" element={<FinanceDashboard />} />
+          <Route path="/inventory" element={<InventoryDashboard />} />
           {/* Tambahkan rute lain yang Anda miliki */}
           {/* Contoh: <Route path="/products" element={<ProductsPage />} /> */}
           {/* Pastikan semua rute yang ada di sidebar sudah didefinisikan di sini */}

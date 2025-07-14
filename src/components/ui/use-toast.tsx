@@ -1,169 +1,75 @@
-"use client"
-
+// src/components/ui/use-toast.tsx
 import * as React from "react"
+import toast from "react-hot-toast"
+import { cn } from "@/lib/utils"
+import { X } from "lucide-react"
+import { type ToastActionElement } from "@/components/ui/toast"
 
-type ToastProps = {
-  title?: string
-  description?: string
-  variant?: "default" | "destructive"
+// Tipe toast kita
+type Toast = {
+  id: string;
+  title?: React.ReactNode;
+  description?: React.ReactNode;
+  action?: ToastActionElement;
+  duration?: number;
+  className?: string;
+  variant?: "default" | "destructive";
 }
 
-type ToastActionElement = React.ReactElement
-
-type ToasterToast = ToastProps & {
-  id: string
-  action?: ToastActionElement
-  open: boolean
-  onOpenChange?: (open: boolean) => void // ✅ Tambahkan properti ini
-}
-
-const TOAST_LIMIT = 1
-const TOAST_REMOVE_DELAY = 1000000
-
-const actionTypes = {
-  ADD_TOAST: "ADD_TOAST",
-  UPDATE_TOAST: "UPDATE_TOAST",
-  DISMISS_TOAST: "DISMISS_TOAST",
-  REMOVE_TOAST: "REMOVE_TOAST",
-} as const
-
-let count = 0
-function genId() {
-  count = (count + 1) % Number.MAX_SAFE_INTEGER
-  return count.toString()
-}
-
-type ActionType = typeof actionTypes
-
-type Action =
-  | {
-      type: ActionType["ADD_TOAST"]
-      toast: ToasterToast
-    }
-  | {
-      type: ActionType["UPDATE_TOAST"]
-      toast: Partial<ToasterToast>
-    }
-  | {
-      type: ActionType["DISMISS_TOAST"]
-      toastId?: ToasterToast["id"]
-    }
-  | {
-      type: ActionType["REMOVE_TOAST"]
-      toastId?: ToasterToast["id"]
+export function useToast() {
+  const showToast = React.useCallback((props: Omit<Toast, "id">) => {
+    const hotToastOptions: any = {
+      duration: props.duration || 5000,
+      className: props.className,
     }
 
-interface State {
-  toasts: ToasterToast[]
-}
-
-const toastTimeouts = new Map<string, ReturnType<typeof setTimeout>>()
-
-const addToRemoveQueue = (toastId: string) => {
-  if (toastTimeouts.has(toastId)) return
-
-  const timeout = setTimeout(() => {
-    toastTimeouts.delete(toastId)
-    dispatch({ type: "REMOVE_TOAST", toastId })
-  }, TOAST_REMOVE_DELAY)
-
-  toastTimeouts.set(toastId, timeout)
-}
-
-export const reducer = (state: State, action: Action): State => {
-  switch (action.type) {
-    case "ADD_TOAST":
-      return {
-        ...state,
-        toasts: [action.toast, ...state.toasts].slice(0, TOAST_LIMIT),
+    if (props.variant === "destructive") {
+      hotToastOptions.style = {
+        backgroundColor: "var(--destructive)",
+        color: "var(--destructive-foreground)",
       }
-    case "UPDATE_TOAST":
-      return {
-        ...state,
-        toasts: state.toasts.map((t) =>
-          t.id === action.toast.id ? { ...t, ...action.toast } : t
-        ),
-      }
-    case "DISMISS_TOAST": {
-      const { toastId } = action
-      if (toastId) {
-        addToRemoveQueue(toastId)
-      } else {
-        state.toasts.forEach((toast) => addToRemoveQueue(toast.id))
-      }
-
-      return {
-        ...state,
-        toasts: state.toasts.map((t) =>
-          t.id === toastId || toastId === undefined
-            ? { ...t, open: false }
-            : t
-        ),
-      }
+      hotToastOptions.className = cn(
+        hotToastOptions.className,
+        "border border-[var(--destructive-border)]"
+      )
     }
-    case "REMOVE_TOAST":
-      if (action.toastId === undefined) {
-        return { ...state, toasts: [] }
-      }
-      return {
-        ...state,
-        toasts: state.toasts.filter((t) => t.id !== action.toastId),
-      }
-  }
-}
 
-const listeners: Array<(state: State) => void> = []
-let memoryState: State = { toasts: [] }
+    return toast.custom((t) => (
+      <div
+        className={cn(
+          // ✅ Hanya pakai GRID seperti toast shadcn
+          "group grid relative pointer-events-auto w-full items-center justify-between space-x-4 overflow-hidden rounded-md border p-6 pr-8 shadow-lg transition-all data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-full data-[state=open]:slide-in-from-top-full sm:data-[state=open]:slide-in-from-bottom-full sm:data-[state=closed]:slide-out-to-right-full",
+          props.className,
+          props.variant === "destructive"
+            ? "destructive group border-destructive bg-destructive text-destructive-foreground"
+            : "border bg-background text-foreground"
+        )}
+        data-state={t.visible ? "open" : "closed"}
+      >
+        <div className="grid gap-1">
+          {props.title && <div className="text-sm font-semibold">{props.title}</div>}
+          {props.description && (
+            <div className="text-sm opacity-90">{props.description}</div>
+          )}
+        </div>
 
-function dispatch(action: Action) {
-  memoryState = reducer(memoryState, action)
-  listeners.forEach((listener) => listener(memoryState))
-}
+        {props.action && props.action}
 
-function toast({ ...props }: Omit<ToasterToast, "id">) {
-  const id = genId()
-
-  const update = (props: ToasterToast) =>
-    dispatch({ type: "UPDATE_TOAST", toast: { ...props, id } })
-
-  const dismiss = () => dispatch({ type: "DISMISS_TOAST", toastId: id })
-
-  dispatch({
-    type: "ADD_TOAST",
-    toast: {
-      ...props,
-      id,
-      open: true,
-      onOpenChange: (open: boolean) => {
-        if (!open) dismiss()
-      },
-    },
-  })
-
-  return {
-    id,
-    dismiss,
-    update,
-  }
-}
-
-function useToast() {
-  const [state, setState] = React.useState<State>(memoryState)
-
-  React.useEffect(() => {
-    listeners.push(setState)
-    return () => {
-      const index = listeners.indexOf(setState)
-      if (index > -1) listeners.splice(index, 1)
-    }
+        <button
+          onClick={() => toast.dismiss(t.id)}
+          className="absolute right-2 top-2 rounded-md p-1 text-foreground/50 opacity-0 transition-opacity hover:text-foreground focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none group-hover:opacity-100 group-[.destructive]:text-red-300 group-[.destructive]:hover:text-red-50 group-[.destructive]:focus:ring-red-400 group-[.destructive]:focus:ring-offset-red-600"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+    ), hotToastOptions)
   }, [])
 
+  // Optional: jika kamu tetap ingin simpan daftar toast (tidak wajib)
+  const [toasts, setToasts] = React.useState<Toast[]>([])
+
   return {
-    ...state,
-    toast,
-    dismiss: (toastId?: string) =>
-      dispatch({ type: "DISMISS_TOAST", toastId }),
+    toasts,
+    toast: showToast,
   }
 }
-
-export { useToast, toast }
