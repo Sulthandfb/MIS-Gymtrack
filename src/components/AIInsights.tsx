@@ -1,20 +1,71 @@
-import { Bell, Zap, CheckCircle, Target } from "lucide-react"
+// src/components/AIInsights.tsx
+import { Bell, Zap, CheckCircle, Target, MessageSquare, TrendingUp, AlertTriangle, Lightbulb as LightbulbIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge"; 
 
-interface AIInsight {
-  title: string
-  text: string
-  recommendation?: string
-  borderColor?: string
-}
+// ✅ FIXED: HANYA import tipe AIInsight yang fleksibel dari kedua modul
+import { AIInsight as FeedbackAIInsightType } from "@/types/feedback";
+import { Insight as MemberInsightType } from "@/types/insight";     
 
+// Definisi tipe prop yang fleksibel untuk komponen AIInsights
 interface AIInsightsProps {
-  insights: AIInsight[]
+  insights: Array<FeedbackAIInsightType | MemberInsightType>; 
 }
 
 export function AIInsights({ insights }: AIInsightsProps) {
+  // Helper untuk mendapatkan kelas CSS badge berdasarkan impact (case-insensitive)
+  const getImpactClass = (impact: string) => {
+    switch (impact.toLowerCase()) {
+      case "positive": return "bg-green-100 text-green-800";
+      case "negative": return "bg-red-100 text-red-800";
+      case "neutral": return "bg-blue-100 text-blue-800"; 
+      default: return "bg-gray-100 text-gray-800";
+    }
+  };
+
+  // Helper untuk mendapatkan ikon berdasarkan tipe insight (case-insensitive)
+  const getTypeIcon = (type: string) => {
+    switch (type.toLowerCase()) {
+      case "trend": return <TrendingUp className="w-4 h-4" />;
+      case "issue": return <AlertTriangle className="w-4 h-4" />;
+      case "strength": return <CheckCircle className="w-4 h-4" />;
+      case "opportunity": return <LightbulbIcon className="w-4 h-4" />;
+      default: return <MessageSquare className="w-4 h-4" />; 
+    }
+  };
+
+  // Helper function untuk safely access properties
+  const getInsightProperty = (insight: FeedbackAIInsightType | MemberInsightType, property: string) => {
+    if (property === 'type') {
+      return (insight as FeedbackAIInsightType).insight_type || 
+             (insight as any).type || 
+             "general";
+    }
+    if (property === 'impact') {
+      return (insight as FeedbackAIInsightType).impact || 
+             (insight as any).impact || 
+             "neutral";
+    }
+    if (property === 'confidence') {
+      return (insight as FeedbackAIInsightType).confidence || 
+             (insight as any).confidence || 
+             0;
+    }
+    if (property === 'recommendation') {
+      return (insight as FeedbackAIInsightType).recommendation || 
+             (insight as any).recommendation || 
+             "";
+    }
+    if (property === 'description') {
+      return (insight as FeedbackAIInsightType).description || 
+             (insight as MemberInsightType).text || 
+             "";
+    }
+    return "";
+  };
+
   return (
     <div className="space-y-4">
-      {/* AI Insights Panel */}
       <div className="bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 text-white rounded-xl shadow-xl overflow-hidden">
         <div className="p-6">
           <div className="flex items-center justify-between mb-6">
@@ -31,34 +82,49 @@ export function AIInsights({ insights }: AIInsightsProps) {
           </div>
 
           <div className="space-y-4 max-h-96 overflow-y-auto custom-scrollbar">
-            {insights.slice(0, 4).map((insight, index) => (
-              <div key={index} className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">
-                <div className="flex items-start gap-3 mb-3">
-                  <div className="w-6 h-6 bg-emerald-400 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <CheckCircle className="w-4 h-4 text-emerald-900" />
-                  </div>
-                  <div className="flex-1">
-                    <h4 className="font-semibold text-sm text-white mb-1">Insight</h4>
-                    <p className="text-blue-100 text-sm leading-relaxed">{insight.title}</p>
-                    {insight.text && (
-                      <p className="text-blue-200 text-xs leading-relaxed mt-1 opacity-90">{insight.text}</p>
-                    )}
-                  </div>
-                </div>
+            {insights.slice(0, 4).map((insight, index) => {
+              // Menggunakan helper function untuk safely access properties
+              const currentInsightType = getInsightProperty(insight, 'type');
+              const currentImpact = getInsightProperty(insight, 'impact');
+              const currentRecommendation = getInsightProperty(insight, 'recommendation');
+              const currentConfidence = getInsightProperty(insight, 'confidence') as number;
+              const currentTitle = insight.title;
+              const currentDescription = getInsightProperty(insight, 'description');
 
-                {insight.recommendation && (
-                  <div className="flex items-start gap-3">
-                    <div className="w-6 h-6 bg-orange-400 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <Target className="w-4 h-4 text-orange-900" />
+              return (
+                <div key={index} className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">
+                  <div className="flex items-start gap-3 mb-3">
+                    <div className="w-6 h-6 bg-emerald-400 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                      {getTypeIcon(currentInsightType)} 
                     </div>
                     <div className="flex-1">
-                      <h4 className="font-semibold text-sm text-white mb-1">Solusi</h4>
-                      <p className="text-blue-100 text-sm leading-relaxed">{insight.recommendation}</p>
+                      <h4 className="font-semibold text-sm text-white mb-1">{currentTitle}</h4>
+                      {currentDescription && (
+                        <p className="text-blue-100 text-sm leading-relaxed mt-1 opacity-90">{currentDescription}</p>
+                      )}
                     </div>
                   </div>
-                )}
-              </div>
-            ))}
+
+                  {currentRecommendation && (
+                    <div className="flex items-start gap-3">
+                      <div className="w-6 h-6 bg-orange-400 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <Target className="w-4 h-4 text-orange-900" />
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="font-semibold text-sm text-white mb-1">Solusi</h4>
+                        <p className="text-blue-100 text-sm leading-relaxed">{currentRecommendation}</p>
+                      </div>
+                    </div>
+                  )}
+                  <div className="mt-2 text-xs text-blue-200">
+                    Impact: <Badge className={cn("px-2 py-1 text-xs", getImpactClass(currentImpact))}>
+                              {currentImpact.charAt(0).toUpperCase() + currentImpact.slice(1)} {/* Format ke Title Case */}
+                            </Badge>
+                    <span className="ml-2">Confidence: {Math.round(currentConfidence * 100)}%</span>
+                  </div>
+                </div>
+              );
+            })}
 
             {insights.length === 0 && (
               <div className="text-center py-8">
@@ -72,52 +138,52 @@ export function AIInsights({ insights }: AIInsightsProps) {
             Lihat Semua Insights & Solutions →
           </button>
         </div>
-      </div>
 
-      {/* Quick Actions Panel */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-          <Zap className="w-5 h-5 text-amber-500" />
-          Quick Actions
-        </h3>
-        <div className="space-y-3">
-          <button className="w-full p-3 text-left rounded-lg border border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-all duration-200 group">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center group-hover:bg-green-200">
-                <CheckCircle className="w-4 h-4 text-green-600" />
+        {/* Quick Actions Panel */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <Zap className="w-5 h-5 text-amber-500" />
+            Quick Actions
+          </h3>
+          <div className="space-y-3">
+            <button className="w-full p-3 text-left rounded-lg border border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-all duration-200 group">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center group-hover:bg-green-200">
+                  <CheckCircle className="w-4 h-4 text-green-600" />
+                </div>
+                <div>
+                  <p className="font-medium text-gray-900 text-sm">Member Retention Program</p>
+                  <p className="text-gray-500 text-xs">Launch targeted retention campaign</p>
+                </div>
               </div>
-              <div>
-                <p className="font-medium text-gray-900 text-sm">Member Retention Program</p>
-                <p className="text-gray-500 text-xs">Launch targeted retention campaign</p>
-              </div>
-            </div>
-          </button>
+            </button>
 
-          <button className="w-full p-3 text-left rounded-lg border border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-all duration-200 group">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center group-hover:bg-blue-200">
-                <Bell className="w-4 h-4 text-blue-600" />
+            <button className="w-full p-3 text-left rounded-lg border border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-all duration-200 group">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center group-hover:bg-blue-200">
+                  <Bell className="w-4 h-4 text-blue-600" />
+                </div>
+                <div>
+                  <p className="font-medium text-gray-900 text-sm">AI Notification Setup</p>
+                  <p className="text-gray-500 text-xs">Optimize notification timing</p>
+                </div>
               </div>
-              <div>
-                <p className="font-medium text-gray-900 text-sm">AI Notification Setup</p>
-                <p className="text-gray-500 text-xs">Optimize notification timing</p>
-              </div>
-            </div>
-          </button>
+            </button>
 
-          <button className="w-full p-3 text-left rounded-lg border border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-all duration-200 group">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center group-hover:bg-purple-200">
-                <Target className="w-4 h-4 text-purple-600" />
+            <button className="w-full p-3 text-left rounded-lg border border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-all duration-200 group">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center group-hover:bg-purple-200">
+                  <Target className="w-4 h-4 text-purple-600" />
+                </div>
+                <div>
+                  <p className="font-medium text-gray-900 text-sm">Goal-Based Programs</p>
+                  <p className="text-gray-500 text-xs">Create specialized workout plans</p>
+                </div>
               </div>
-              <div>
-                <p className="font-medium text-gray-900 text-sm">Goal-Based Programs</p>
-                <p className="text-gray-500 text-xs">Create specialized workout plans</p>
-              </div>
-            </div>
-          </button>
+            </button>
+          </div>
         </div>
       </div>
     </div>
-  )
+  );
 }

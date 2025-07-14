@@ -17,7 +17,19 @@ async def ask_groq(prompt: str) -> str:
     }
 
     async with httpx.AsyncClient() as client:
-        response = await client.post(url, json=payload, headers=headers)
-        response.raise_for_status()
-        data = response.json()
-        return data["choices"][0]["message"]["content"]
+        try:
+            response = await client.post(url, json=payload, headers=headers)
+            response.raise_for_status()
+            data = response.json()
+
+            # Tambahkan validasi isi response
+            if "choices" not in data or not data["choices"]:
+                raise ValueError("No choices in Groq response")
+
+            return data["choices"][0]["message"]["content"]
+        except httpx.HTTPStatusError as e:
+            print(f"[Groq Error] HTTP error: {e.response.status_code} - {e.response.text}")
+        except Exception as e:
+            print(f"[Groq Error] Unexpected error: {e}")
+
+        return ""  # fallback if error terjadi

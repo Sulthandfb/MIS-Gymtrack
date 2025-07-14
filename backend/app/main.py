@@ -4,8 +4,10 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.routes import router as api_router
 from app.database import engine, Base
-# from app.models import finance, member, product, trainer # Import existing models if not already done via Base
-from app.models import inventory # ✅ NEW: Import inventory models so tables are created
+# Import all models so SQLAlchemy knows about them and can create tables
+# from app.models import finance, member, product, trainer # Existing models
+from app.models import inventory # Existing inventory models
+from app.models import feedback # ✅ NEW: Import feedback models so tables are created
 
 # Create database tables
 # Ensure all your Base models are imported here or via a single import that registers them

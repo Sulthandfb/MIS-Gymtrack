@@ -1,7 +1,9 @@
+# app/models/member.py
+
 from sqlalchemy import Column, Integer, String, Date, ForeignKey
 from sqlalchemy.orm import relationship
 from app.database import Base
-from app.models.finance import IncomeTransaction  # ✅ Import langsung untuk hindari error mapper
+from app.models.finance import IncomeTransaction
 from app.models.product import Sale
 
 class Member(Base):
@@ -17,11 +19,12 @@ class Member(Base):
     membership_expiry = Column(Date)
     status = Column(String)
 
-    # ✅ Relationship langsung menggunakan class (bukan string)
+    # ✅ Pakai string agar aman dari circular import
+    feedbacks = relationship("Feedback", back_populates="member")
+
     income_transactions = relationship(IncomeTransaction, back_populates="member")
     goals = relationship("MemberGoal", back_populates="member")
     sales = relationship(Sale, back_populates="member")
-
 
 
 class MemberGoal(Base):

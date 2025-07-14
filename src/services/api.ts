@@ -27,15 +27,14 @@ import {
   type IncomeVsExpenseData,
   type BreakdownData,
   type Transaction,
-  type AIInsight,
+  type AIInsight as FinanceAIInsight, // Rename to avoid conflict with Feedback AIInsight
   type IncomeAnalysis,
   type ExpenseAnalysis,
   type TransactionFilters,
   type FilteredTransactionsResponse,
   handleApiError,
   API_URL,
-} from "@/types/finance" // Assuming API_URL and handleApiError are defined here
-
+} from "@/types/finance" 
 
 // NEW: Import Inventory Types
 import type {
@@ -65,12 +64,33 @@ import type {
   RecentStatusLog,
   InventoryTrends,
   InventoryFilters,
-  InventoryDashboardData // Combined type for initial load
+  InventoryDashboardData 
 } from "@/types/inventory"
+
+// NEW: Import Feedback Types
+import type {
+  Feedback,
+  FeedbackCreate,
+  FeedbackUpdate,
+  FeedbackTopic,
+  FeedbackTopicCreate,
+  FeedbackTopicUpdate,
+  SentimentTrend,
+  SentimentTrendCreate,
+  SentimentTrendUpdate,
+  FeedbackDashboardSummary,
+  SentimentDistribution,
+  TopicAnalysisItem,
+  DailySentimentTrend,
+  AIInsight, // This is the AIInsight for Feedback
+  FeedbackListItem,
+  FeedbackDashboardData as FeedbackDashboardCombinedData, // Rename to avoid conflict
+  FeedbackFilters
+} from "@/types/feedback"
 
 
 // ========================================
-// MEMBER API FUNCTIONS
+// MEMBER API FUNCTIONS (unchanged)
 // ========================================
 export const fetchMemberStats = async (): Promise<MemberStats> => {
   const res = await axios.get(`${API_URL}/api/stats/members`)
@@ -113,7 +133,7 @@ export const fetchABTestData = async (): Promise<ChartABTesting[]> => {
 }
 
 // ========================================
-// TRAINER API FUNCTIONS
+// TRAINER API FUNCTIONS (unchanged)
 // ========================================
 export const fetchAllTrainers = async (): Promise<Trainer[]> => {
   const res = await axios.get(`${API_URL}/api/trainers`)
@@ -141,7 +161,7 @@ export const fetchTrainerSchedule = async (trainerId: string): Promise<Record<st
 }
 
 // ========================================
-// PRODUCT API FUNCTIONS - REAL API CALLS
+// PRODUCT API FUNCTIONS (unchanged)
 // ========================================
 export const fetchProductStats = async (): Promise<ProductStats> => {
   try {
@@ -255,7 +275,7 @@ export const fetchSegmentationInsights = async (filters: {
 }
 
 // ========================================
-// NEW: PRICE SIMULATION API FUNCTIONS
+// NEW: PRICE SIMULATION API FUNCTIONS (unchanged)
 // ========================================
 export const fetchSimulationProducts = async (): Promise<any[]> => {
   try {
@@ -293,7 +313,7 @@ export const fetchPriceImpactChart = async (productId: number): Promise<any[]> =
 }
 
 // ========================================
-// ADDITIONAL PRODUCT API FUNCTIONS
+// ADDITIONAL PRODUCT API FUNCTIONS (unchanged)
 // ========================================
 export const fetchLowStockProducts = async (threshold = 10): Promise<Product[]> => {
   try {
@@ -316,7 +336,7 @@ export const fetchProductCategories = async (): Promise<CategoryData[]> => {
 }
 
 // ========================================
-// FINANCE API FUNCTIONS
+// FINANCE API FUNCTIONS (unchanged)
 // ========================================
 export const fetchFinancialSummary = async (): Promise<FinancialSummary> => {
   try {
@@ -368,7 +388,7 @@ export const fetchRecentTransactions = async (limit = 10): Promise<Transaction[]
   }
 }
 
-// ✅ NEW: Filtered transactions with pagination
+// ✅ NEW: Filtered transactions with pagination (unchanged)
 export const fetchFilteredTransactions = async (filters: TransactionFilters): Promise<FilteredTransactionsResponse> => {
   try {
     const params = new URLSearchParams()
@@ -387,10 +407,10 @@ export const fetchFilteredTransactions = async (filters: TransactionFilters): Pr
   }
 }
 
-export const fetchFinanceAIInsights = async (): Promise<AIInsight[]> => {
+export const fetchFinanceAIInsights = async (): Promise<FinanceAIInsight[]> => {
   try {
     const res = await axios.get(`${API_URL}/api/finance/ai-insights`)
-    return res.data as AIInsight[]
+    return res.data as FinanceAIInsight[]
   } catch (error) {
     console.error("Error fetching finance AI insights:", error)
     throw error
@@ -417,7 +437,7 @@ export const fetchExpenseAnalysis = async (): Promise<ExpenseAnalysis> => {
   }
 }
 
-// Batch API call for finance dashboard
+// Batch API call for finance dashboard (unchanged)
 export const fetchFinanceDashboardData = async () => {
   try {
     const [summary, incomeVsExpenses, incomeBreakdown, expenseBreakdown, recentTransactions, aiInsights] =
@@ -444,7 +464,7 @@ export const fetchFinanceDashboardData = async () => {
 }
 
 // ========================================
-// NEW: INVENTORY API FUNCTIONS
+// INVENTORY API FUNCTIONS (unchanged)
 // ========================================
 
 export const fetchInventorySummary = async (): Promise<InventorySummary> => {
@@ -588,7 +608,7 @@ export const deleteEquipment = async (equipmentId: number): Promise<void> => {
 };
 
 
-// Combined API call for inventory dashboard
+// Combined API call for inventory dashboard (unchanged)
 export const fetchInventoryDashboardData = async (filters?: InventoryFilters): Promise<InventoryDashboardData> => {
   try {
     const [summary, equipmentList, trends, categories] = await Promise.all([
@@ -649,7 +669,7 @@ export const fetchProductListData = async (filters: {
   }
 }
 
-// ✅ UPDATED: Use segmentation-specific insights
+// ✅ UPDATED: Use segmentation-specific insights (unchanged)
 export const fetchSegmentationDashboardData = async (filters: {
   goal?: string
   ageRange?: string
@@ -670,3 +690,140 @@ export const fetchSegmentationDashboardData = async (filters: {
     throw error
   }
 }
+
+// ========================================
+// NEW: FEEDBACK API FUNCTIONS (diperbarui)
+// ========================================
+
+export const fetchSentimentSummary = async (): Promise<FeedbackDashboardSummary> => {
+  try {
+    const res = await axios.get(`${API_URL}/api/feedback/summary`);
+    return res.data;
+  } catch (error) {
+    handleApiError(error, "Sentiment Summary");
+    throw error;
+  }
+};
+
+export const fetchSentimentDistribution = async (): Promise<SentimentDistribution[]> => {
+  try {
+    const res = await axios.get(`${API_URL}/api/feedback/sentiment-distribution`);
+    return res.data;
+  } catch (error) {
+    handleApiError(error, "Sentiment Distribution");
+    throw error;
+  }
+};
+
+export const fetchTopicAnalysis = async (): Promise<TopicAnalysisItem[]> => {
+  try {
+    const res = await axios.get(`${API_URL}/api/feedback/topic-analysis`);
+    return res.data;
+  } catch (error) {
+    handleApiError(error, "Topic Analysis");
+    throw error;
+  }
+};
+
+export const fetchDailySentimentTrends = async (start_date?: string, end_date?: string): Promise<DailySentimentTrend[]> => {
+  try {
+    const params = new URLSearchParams();
+    if (start_date) params.append("start_date", start_date);
+    if (end_date) params.append("end_date", end_date);
+    const res = await axios.get(`${API_URL}/api/feedback/sentiment-trends?${params.toString()}`);
+    return res.data;
+  } catch (error) {
+    handleApiError(error, "Daily Sentiment Trends");
+    throw error;
+  }
+};
+
+// ✅ FIXED: fetchRecentFeedback sekarang menerima objek FeedbackFilters
+export const fetchRecentFeedback = async (filters?: FeedbackFilters): Promise<FeedbackListItem[]> => {
+    try {
+        const params = new URLSearchParams();
+        if (filters?.limit) params.append("limit", filters.limit.toString());
+        if (filters?.member_id) params.append("member_id", filters.member_id.toString());
+        if (filters?.feedback_type) params.append("feedback_type", filters.feedback_type);
+        if (filters?.sentiment) params.append("sentiment", filters.sentiment);
+        if (filters?.start_date) params.append("start_date", filters.start_date);
+        if (filters?.end_date) params.append("end_date", filters.end_date);
+        if (filters?.search_query) params.append("search_query", filters.search_query);
+
+        const res = await axios.get(`${API_URL}/api/feedback/recent-feedback?${params.toString()}`);
+        return res.data;
+    } catch (error) {
+        handleApiError(error, "Recent Feedback");
+        throw error;
+    }
+};
+
+
+export const fetchAllFeedbackTypes = async (): Promise<string[]> => {
+    try {
+        const res = await axios.get(`${API_URL}/api/feedback/feedback-types`);
+        return res.data;
+    } catch (error) {
+        handleApiError(error, "Feedback Types");
+        throw error;
+    }
+};
+
+export const fetchAllMemberNames = async (): Promise<string[]> => {
+    try {
+        const res = await axios.get(`${API_URL}/api/feedback/member-names`);
+        return res.data;
+    } catch (error) {
+        handleApiError(error, "Member Names");
+        throw error;
+    }
+};
+
+export const fetchOverallAIInsights = async (): Promise<AIInsight[]> => {
+    try {
+        const res = await axios.get(`${API_URL}/api/feedback/ai-insights/overall`);
+        return res.data;
+    } catch (error) {
+        handleApiError(error, "Overall AI Insights");
+        throw error;
+    }
+};
+
+export const triggerAIBatchProcessing = async (limit: number = 10): Promise<{ processed_count: number }> => {
+    try {
+        const res = await axios.post(`${API_URL}/api/feedback/process-ai-batch?limit=${limit}`);
+        return res.data;
+    } catch (error) {
+        handleApiError(error, "AI Batch Processing");
+        throw error;
+    }
+};
+
+// ✅ FIXED: fetchFeedbackDashboardData sekarang mengirim filters ke fetchRecentFeedback
+export const fetchFeedbackDashboardData = async (filters?: FeedbackFilters): Promise<FeedbackDashboardCombinedData> => {
+    try {
+        const [summary, distribution, topics, trends, recent, aiInsights, types, members] = await Promise.all([
+            fetchSentimentSummary(),
+            fetchSentimentDistribution(),
+            fetchTopicAnalysis(),
+            fetchDailySentimentTrends(filters?.start_date, filters?.end_date),
+            fetchRecentFeedback(filters), // ✅ Kirim filters ke fetchRecentFeedback
+            fetchOverallAIInsights(),
+            fetchAllFeedbackTypes(),
+            fetchAllMemberNames()
+        ]);
+        return {
+            summary,
+            sentimentDistribution: distribution,
+            topicAnalysis: topics,
+            sentimentTrendDaily: trends,
+            recentFeedback: recent,
+            allAIInsights: aiInsights,
+            feedbackTypes: types,
+            memberNames: members
+        };
+    } catch (error) {
+        handleApiError(error, "Feedback Dashboard Data");
+        throw error;
+    }
+};
