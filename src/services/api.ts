@@ -1,5 +1,3 @@
-// src/services/api.ts
-
 import axios from "axios"
 import type {
   MemberStats,
@@ -34,50 +32,25 @@ import {
   type FilteredTransactionsResponse,
   handleApiError,
   API_URL,
-} from "@/types/finance" 
+} from "@/types/finance"
 
 // NEW: Import Inventory Types
 import type {
   EquipmentCategory,
-  Supplier,
   Equipment,
   EquipmentCreate,
   EquipmentUpdate,
-  BackupEquipment,
-  BackupEquipmentCreate,
-  BackupEquipmentUpdate,
-  EquipmentMaintenance,
-  EquipmentMaintenanceCreate,
-  EquipmentMaintenanceUpdate,
-  EquipmentStatusLog,
-  EquipmentStatusLogCreate,
-  EquipmentUsageLog,
-  EquipmentUsageLogCreate,
-  EquipmentUsageLogUpdate,
   AIInventoryRecommendation,
-  AIInventoryRecommendationCreate,
   AIInventoryRecommendationUpdate,
   InventorySummary,
   EquipmentTableItem,
-  BrokenEquipmentTrend,
-  MostUsedEquipment,
-  RecentStatusLog,
   InventoryTrends,
   InventoryFilters,
-  InventoryDashboardData 
+  InventoryDashboardData,
 } from "@/types/inventory"
 
 // NEW: Import Feedback Types
 import type {
-  Feedback,
-  FeedbackCreate,
-  FeedbackUpdate,
-  FeedbackTopic,
-  FeedbackTopicCreate,
-  FeedbackTopicUpdate,
-  SentimentTrend,
-  SentimentTrendCreate,
-  SentimentTrendUpdate,
   FeedbackDashboardSummary,
   SentimentDistribution,
   TopicAnalysisItem,
@@ -85,9 +58,8 @@ import type {
   AIInsight, // This is the AIInsight for Feedback
   FeedbackListItem,
   FeedbackDashboardData as FeedbackDashboardCombinedData, // Rename to avoid conflict
-  FeedbackFilters
+  FeedbackFilters,
 } from "@/types/feedback"
-
 
 // ========================================
 // MEMBER API FUNCTIONS (unchanged)
@@ -398,7 +370,6 @@ export const fetchFilteredTransactions = async (filters: TransactionFilters): Pr
     if (filters.dateTo) params.append("date_to", filters.dateTo)
     if (filters.limit) params.append("limit", filters.limit.toString())
     if (filters.offset) params.append("offset", filters.offset.toString())
-
     const res = await axios.get(`${API_URL}/api/finance/transactions?${params.toString()}`)
     return res.data as FilteredTransactionsResponse
   } catch (error) {
@@ -466,147 +437,155 @@ export const fetchFinanceDashboardData = async () => {
 // ========================================
 // INVENTORY API FUNCTIONS (unchanged)
 // ========================================
-
 export const fetchInventorySummary = async (): Promise<InventorySummary> => {
   try {
-    const res = await axios.get(`${API_URL}/api/inventory/summary`);
-    return res.data as InventorySummary;
+    const res = await axios.get(`${API_URL}/api/inventory/summary`)
+    return res.data as InventorySummary
   } catch (error) {
-    console.error("Error fetching inventory summary:", error);
-    throw error;
+    console.error("Error fetching inventory summary:", error)
+    throw error
   }
-};
+}
 
 export const fetchDashboardEquipmentList = async (filters?: InventoryFilters): Promise<EquipmentTableItem[]> => {
   try {
-    const params = new URLSearchParams();
-    if (filters?.status) params.append("status", filters.status);
-    if (filters?.category_name) params.append("category_name", filters.category_name);
-    if (filters?.search_query) params.append("search_query", filters.search_query);
-    if (filters?.skip) params.append("skip", filters.skip.toString());
-    if (filters?.limit) params.append("limit", filters.limit.toString());
-
-    const res = await axios.get(`${API_URL}/api/inventory/dashboard-equipment?${params.toString()}`);
-    return res.data as EquipmentTableItem[];
+    const params = new URLSearchParams()
+    if (filters?.status) params.append("status", filters.status)
+    if (filters?.category_name) params.append("category_name", filters.category_name)
+    if (filters?.search_query) params.append("search_query", filters.search_query)
+    if (filters?.skip) params.append("skip", filters.skip.toString())
+    if (filters?.limit) params.append("limit", filters.limit.toString())
+    const res = await axios.get(`${API_URL}/api/inventory/dashboard-equipment?${params.toString()}`)
+    return res.data as EquipmentTableItem[]
   } catch (error) {
-    console.error("Error fetching dashboard equipment list:", error);
-    throw error;
+    console.error("Error fetching dashboard equipment list:", error)
+    throw error
   }
-};
+}
 
-export const fetchInventoryTrends = async (numWeeks: number = 12): Promise<InventoryTrends> => {
+export const fetchInventoryTrends = async (numWeeks = 12): Promise<InventoryTrends> => {
   try {
-    const res = await axios.get(`${API_URL}/api/inventory/trends?num_weeks=${numWeeks}`);
-    return res.data as InventoryTrends;
+    const res = await axios.get(`${API_URL}/api/inventory/trends?num_weeks=${numWeeks}`)
+    return res.data as InventoryTrends
   } catch (error) {
-    console.error("Error fetching inventory trends:", error);
-    throw error;
+    console.error("Error fetching inventory trends:", error)
+    throw error
   }
-};
+}
 
+// ✅ INVENTORY AI RECOMMENDATIONS (keep original name for inventory)
 export const fetchAIRecommendations = async (managerDecision?: string): Promise<AIInventoryRecommendation[]> => {
   try {
-    const params = new URLSearchParams();
-    if (managerDecision) params.append("manager_decision", managerDecision);
-
-    const res = await axios.get(`${API_URL}/api/inventory/ai-recommendations?${params.toString()}`);
-    return res.data as AIInventoryRecommendation[];
+    const params = new URLSearchParams()
+    if (managerDecision) params.append("manager_decision", managerDecision)
+    const res = await axios.get(`${API_URL}/api/inventory/ai-recommendations?${params.toString()}`)
+    return res.data as AIInventoryRecommendation[]
   } catch (error) {
-    console.error("Error fetching AI recommendations:", error);
-    throw error;
+    console.error("Error fetching AI recommendations:", error)
+    throw error
   }
-};
+}
 
-export const updateAIRecommendationDecision = async (recommendationId: number, updateData: AIInventoryRecommendationUpdate): Promise<AIInventoryRecommendation> => {
+export const updateAIRecommendationDecision = async (
+  recommendationId: number,
+  updateData: AIInventoryRecommendationUpdate,
+): Promise<AIInventoryRecommendation> => {
   try {
-    const res = await axios.put(`${API_URL}/api/inventory/ai-recommendations/${recommendationId}`, updateData);
-    return res.data as AIInventoryRecommendation;
+    const res = await axios.put(`${API_URL}/api/inventory/ai-recommendations/${recommendationId}`, updateData)
+    return res.data as AIInventoryRecommendation
   } catch (error) {
-    console.error(`Error updating AI recommendation ${recommendationId}:`, error);
-    throw error;
+    console.error(`Error updating AI recommendation ${recommendationId}:`, error)
+    throw error
   }
-};
+}
 
-export const takeEquipmentFromBackup = async (equipmentId: number, quantityToTake: number = 1, changedBy: string = "Manager"): Promise<Equipment> => {
+export const takeEquipmentFromBackup = async (
+  equipmentId: number,
+  quantityToTake = 1,
+  changedBy = "Manager",
+): Promise<Equipment> => {
   try {
     const res = await axios.post(`${API_URL}/api/inventory/equipment/${equipmentId}/take-from-backup`, null, {
-      params: { quantity_to_take: quantityToTake, changed_by: changedBy }
-    });
-    return res.data as Equipment;
+      params: { quantity_to_take: quantityToTake, changed_by: changedBy },
+    })
+    return res.data as Equipment
   } catch (error) {
-    console.error(`Error taking equipment ${equipmentId} from backup:`, error);
-    throw error;
+    console.error(`Error taking equipment ${equipmentId} from backup:`, error)
+    throw error
   }
-};
+}
 
-export const updateEquipmentStatus = async (equipmentId: number, newStatus: string, changedBy: string = "Manager", changeReason?: string): Promise<Equipment> => {
+export const updateEquipmentStatus = async (
+  equipmentId: number,
+  newStatus: string,
+  changedBy = "Manager",
+  changeReason?: string,
+): Promise<Equipment> => {
   try {
     const res = await axios.put(`${API_URL}/api/inventory/equipment/${equipmentId}/status`, null, {
-      params: { new_status: newStatus, changed_by: changedBy, change_reason: changeReason }
-    });
-    return res.data as Equipment;
+      params: { new_status: newStatus, changed_by: changedBy, change_reason: changeReason },
+    })
+    return res.data as Equipment
   } catch (error) {
-    console.error(`Error updating equipment ${equipmentId} status to ${newStatus}:`, error);
-    throw error;
+    console.error(`Error updating equipment ${equipmentId} status to ${newStatus}:`, error)
+    throw error
   }
-};
+}
 
 export const fetchEquipmentCategories = async (): Promise<EquipmentCategory[]> => {
   try {
-    const res = await axios.get(`${API_URL}/api/inventory/categories`);
-    return res.data as EquipmentCategory[];
+    const res = await axios.get(`${API_URL}/api/inventory/categories`)
+    return res.data as EquipmentCategory[]
   } catch (error) {
-    console.error("Error fetching equipment categories:", error);
-    throw error;
+    console.error("Error fetching equipment categories:", error)
+    throw error
   }
-};
+}
 
 export const fetchEquipmentList = async (filters?: InventoryFilters): Promise<Equipment[]> => {
   try {
-    const params = new URLSearchParams();
-    if (filters?.status) params.append("status", filters.status);
-    if (filters?.category_name) params.append("category_name", filters.category_name);
-    if (filters?.search_query) params.append("search_query", filters.search_query);
-    if (filters?.skip) params.append("skip", filters.skip.toString());
-    if (filters?.limit) params.append("limit", filters.limit.toString());
-
-    const res = await axios.get(`${API_URL}/api/inventory/equipment?${params.toString()}`);
-    return res.data as Equipment[];
+    const params = new URLSearchParams()
+    if (filters?.status) params.append("status", filters.status)
+    if (filters?.category_name) params.append("category_name", filters.category_name)
+    if (filters?.search_query) params.append("search_query", filters.search_query)
+    if (filters?.skip) params.append("skip", filters.skip.toString())
+    if (filters?.limit) params.append("limit", filters.limit.toString())
+    const res = await axios.get(`${API_URL}/api/inventory/equipment?${params.toString()}`)
+    return res.data as Equipment[]
   } catch (error) {
-    console.error("Error fetching equipment list:", error);
-    throw error;
+    console.error("Error fetching equipment list:", error)
+    throw error
   }
-};
+}
 
 export const createEquipment = async (equipmentData: EquipmentCreate): Promise<Equipment> => {
   try {
-    const res = await axios.post(`${API_URL}/api/inventory/equipment`, equipmentData);
-    return res.data as Equipment;
+    const res = await axios.post(`${API_URL}/api/inventory/equipment`, equipmentData)
+    return res.data as Equipment
   } catch (error) {
-    console.error("Error creating equipment:", error);
-    throw error;
+    console.error("Error creating equipment:", error)
+    throw error
   }
-};
+}
 
 export const updateEquipment = async (equipmentId: number, updateData: EquipmentUpdate): Promise<Equipment> => {
   try {
-    const res = await axios.put(`${API_URL}/api/inventory/equipment/${equipmentId}`, updateData);
-    return res.data as Equipment;
+    const res = await axios.put(`${API_URL}/api/inventory/equipment/${equipmentId}`, updateData)
+    return res.data as Equipment
   } catch (error) {
-    console.error(`Error updating equipment ${equipmentId}:`, error);
-    throw error;
+    console.error(`Error updating equipment ${equipmentId}:`, error)
+    throw error
   }
-};
+}
 
 export const deleteEquipment = async (equipmentId: number): Promise<void> => {
   try {
-    await axios.delete(`${API_URL}/api/inventory/equipment/${equipmentId}`);
+    await axios.delete(`${API_URL}/api/inventory/equipment/${equipmentId}`)
   } catch (error) {
-    console.error(`Error deleting equipment ${equipmentId}:`, error);
-    throw error;
+    console.error(`Error deleting equipment ${equipmentId}:`, error)
+    throw error
   }
-};
-
+}
 
 // Combined API call for inventory dashboard (unchanged)
 export const fetchInventoryDashboardData = async (filters?: InventoryFilters): Promise<InventoryDashboardData> => {
@@ -615,20 +594,19 @@ export const fetchInventoryDashboardData = async (filters?: InventoryFilters): P
       fetchInventorySummary(),
       fetchDashboardEquipmentList(filters),
       fetchInventoryTrends(),
-      fetchEquipmentCategories()
-    ]);
+      fetchEquipmentCategories(),
+    ])
     return {
       summary,
       equipmentList,
       trends,
-      equipmentCategories: categories
-    };
+      equipmentCategories: categories,
+    }
   } catch (error) {
-    handleApiError(error, "Inventory Dashboard Data");
-    throw error;
+    handleApiError(error, "Inventory Dashboard Data")
+    throw error
   }
-};
-
+}
 
 // ========================================
 // BATCH API CALLS FOR DASHBOARD (EXISTING)
@@ -694,136 +672,167 @@ export const fetchSegmentationDashboardData = async (filters: {
 // ========================================
 // NEW: FEEDBACK API FUNCTIONS (diperbarui)
 // ========================================
-
 export const fetchSentimentSummary = async (): Promise<FeedbackDashboardSummary> => {
   try {
-    const res = await axios.get(`${API_URL}/api/feedback/summary`);
-    return res.data;
+    const res = await axios.get(`${API_URL}/api/feedback/summary`)
+    return res.data
   } catch (error) {
-    handleApiError(error, "Sentiment Summary");
-    throw error;
+    handleApiError(error, "Sentiment Summary")
+    throw error
   }
-};
+}
 
 export const fetchSentimentDistribution = async (): Promise<SentimentDistribution[]> => {
   try {
-    const res = await axios.get(`${API_URL}/api/feedback/sentiment-distribution`);
-    return res.data;
+    const res = await axios.get(`${API_URL}/api/feedback/sentiment-distribution`)
+    return res.data
   } catch (error) {
-    handleApiError(error, "Sentiment Distribution");
-    throw error;
+    handleApiError(error, "Sentiment Distribution")
+    throw error
   }
-};
+}
 
 export const fetchTopicAnalysis = async (): Promise<TopicAnalysisItem[]> => {
   try {
-    const res = await axios.get(`${API_URL}/api/feedback/topic-analysis`);
-    return res.data;
+    const res = await axios.get(`${API_URL}/api/feedback/topic-analysis`)
+    return res.data
   } catch (error) {
-    handleApiError(error, "Topic Analysis");
-    throw error;
+    handleApiError(error, "Topic Analysis")
+    throw error
   }
-};
+}
 
-export const fetchDailySentimentTrends = async (start_date?: string, end_date?: string): Promise<DailySentimentTrend[]> => {
+export const fetchDailySentimentTrends = async (
+  start_date?: string,
+  end_date?: string,
+): Promise<DailySentimentTrend[]> => {
   try {
-    const params = new URLSearchParams();
-    if (start_date) params.append("start_date", start_date);
-    if (end_date) params.append("end_date", end_date);
-    const res = await axios.get(`${API_URL}/api/feedback/sentiment-trends?${params.toString()}`);
-    return res.data;
+    const params = new URLSearchParams()
+    if (start_date) params.append("start_date", start_date)
+    if (end_date) params.append("end_date", end_date)
+    const res = await axios.get(`${API_URL}/api/feedback/sentiment-trends?${params.toString()}`)
+    return res.data
   } catch (error) {
-    handleApiError(error, "Daily Sentiment Trends");
-    throw error;
+    handleApiError(error, "Daily Sentiment Trends")
+    throw error
   }
-};
+}
 
 // ✅ FIXED: fetchRecentFeedback sekarang menerima objek FeedbackFilters
 export const fetchRecentFeedback = async (filters?: FeedbackFilters): Promise<FeedbackListItem[]> => {
-    try {
-        const params = new URLSearchParams();
-        if (filters?.limit) params.append("limit", filters.limit.toString());
-        if (filters?.member_id) params.append("member_id", filters.member_id.toString());
-        if (filters?.feedback_type) params.append("feedback_type", filters.feedback_type);
-        if (filters?.sentiment) params.append("sentiment", filters.sentiment);
-        if (filters?.start_date) params.append("start_date", filters.start_date);
-        if (filters?.end_date) params.append("end_date", filters.end_date);
-        if (filters?.search_query) params.append("search_query", filters.search_query);
-
-        const res = await axios.get(`${API_URL}/api/feedback/recent-feedback?${params.toString()}`);
-        return res.data;
-    } catch (error) {
-        handleApiError(error, "Recent Feedback");
-        throw error;
-    }
-};
-
+  try {
+    const params = new URLSearchParams()
+    if (filters?.limit) params.append("limit", filters.limit.toString())
+    if (filters?.member_id) params.append("member_id", filters.member_id.toString())
+    if (filters?.feedback_type) params.append("feedback_type", filters.feedback_type)
+    if (filters?.sentiment) params.append("sentiment", filters.sentiment)
+    if (filters?.start_date) params.append("start_date", filters.start_date)
+    if (filters?.end_date) params.append("end_date", filters.end_date)
+    if (filters?.search_query) params.append("search_query", filters.search_query)
+    const res = await axios.get(`${API_URL}/api/feedback/recent-feedback?${params.toString()}`)
+    return res.data
+  } catch (error) {
+    handleApiError(error, "Recent Feedback")
+    throw error
+  }
+}
 
 export const fetchAllFeedbackTypes = async (): Promise<string[]> => {
-    try {
-        const res = await axios.get(`${API_URL}/api/feedback/feedback-types`);
-        return res.data;
-    } catch (error) {
-        handleApiError(error, "Feedback Types");
-        throw error;
-    }
-};
+  try {
+    const res = await axios.get(`${API_URL}/api/feedback/feedback-types`)
+    return res.data
+  } catch (error) {
+    handleApiError(error, "Feedback Types")
+    throw error
+  }
+}
 
 export const fetchAllMemberNames = async (): Promise<string[]> => {
-    try {
-        const res = await axios.get(`${API_URL}/api/feedback/member-names`);
-        return res.data;
-    } catch (error) {
-        handleApiError(error, "Member Names");
-        throw error;
-    }
-};
+  try {
+    const res = await axios.get(`${API_URL}/api/feedback/member-names`)
+    return res.data
+  } catch (error) {
+    handleApiError(error, "Member Names")
+    throw error
+  }
+}
 
 export const fetchOverallAIInsights = async (): Promise<AIInsight[]> => {
-    try {
-        const res = await axios.get(`${API_URL}/api/feedback/ai-insights/overall`);
-        return res.data;
-    } catch (error) {
-        handleApiError(error, "Overall AI Insights");
-        throw error;
-    }
-};
+  try {
+    const res = await axios.get(`${API_URL}/api/feedback/ai-insights/overall`)
+    return res.data
+  } catch (error) {
+    handleApiError(error, "Overall AI Insights")
+    throw error
+  }
+}
 
-export const triggerAIBatchProcessing = async (limit: number = 10): Promise<{ processed_count: number }> => {
-    try {
-        const res = await axios.post(`${API_URL}/api/feedback/process-ai-batch?limit=${limit}`);
-        return res.data;
-    } catch (error) {
-        handleApiError(error, "AI Batch Processing");
-        throw error;
-    }
-};
+export const triggerAIBatchProcessing = async (limit = 10): Promise<{ processed_count: number }> => {
+  try {
+    const res = await axios.post(`${API_URL}/api/feedback/process-ai-batch?limit=${limit}`)
+    return res.data
+  } catch (error) {
+    handleApiError(error, "AI Batch Processing")
+    throw error
+  }
+}
 
 // ✅ FIXED: fetchFeedbackDashboardData sekarang mengirim filters ke fetchRecentFeedback
 export const fetchFeedbackDashboardData = async (filters?: FeedbackFilters): Promise<FeedbackDashboardCombinedData> => {
-    try {
-        const [summary, distribution, topics, trends, recent, aiInsights, types, members] = await Promise.all([
-            fetchSentimentSummary(),
-            fetchSentimentDistribution(),
-            fetchTopicAnalysis(),
-            fetchDailySentimentTrends(filters?.start_date, filters?.end_date),
-            fetchRecentFeedback(filters), // ✅ Kirim filters ke fetchRecentFeedback
-            fetchOverallAIInsights(),
-            fetchAllFeedbackTypes(),
-            fetchAllMemberNames()
-        ]);
-        return {
-            summary,
-            sentimentDistribution: distribution,
-            topicAnalysis: topics,
-            sentimentTrendDaily: trends,
-            recentFeedback: recent,
-            allAIInsights: aiInsights,
-            feedbackTypes: types,
-            memberNames: members
-        };
-    } catch (error) {
-        handleApiError(error, "Feedback Dashboard Data");
-        throw error;
+  try {
+    const [summary, distribution, topics, trends, recent, aiInsights, types, members] = await Promise.all([
+      fetchSentimentSummary(),
+      fetchSentimentDistribution(),
+      fetchTopicAnalysis(),
+      fetchDailySentimentTrends(filters?.start_date, filters?.end_date),
+      fetchRecentFeedback(filters), // ✅ Kirim filters ke fetchRecentFeedback
+      fetchOverallAIInsights(),
+      fetchAllFeedbackTypes(),
+      fetchAllMemberNames(),
+    ])
+    return {
+      summary,
+      sentimentDistribution: distribution,
+      topicAnalysis: topics,
+      sentimentTrendDaily: trends,
+      recentFeedback: recent,
+      allAIInsights: aiInsights,
+      feedbackTypes: types,
+      memberNames: members,
     }
-};
+  } catch (error) {
+    handleApiError(error, "Feedback Dashboard Data")
+    throw error
+  }
+}
+
+export const fetchMonthlySentimentTrends = async (year = 2024): Promise<any[]> => {
+  try {
+    const res = await axios.get(`${API_URL}/api/feedback/monthly-sentiment-trends?year=${year}`)
+    return res.data
+  } catch (error) {
+    handleApiError(error, "Monthly Sentiment Trends")
+    throw error
+  }
+}
+
+export const fetchTopicSentimentComparison = async (year = 2024): Promise<any> => {
+  try {
+    const res = await axios.get(`${API_URL}/api/feedback/topic-sentiment-comparison?year=${year}`)
+    return res.data
+  } catch (error) {
+    handleApiError(error, "Topic Sentiment Comparison")
+    throw error
+  }
+}
+
+// ✅ RENAMED: Feedback AI Recommendations to avoid conflict with Inventory
+export const fetchFeedbackAIRecommendations = async (): Promise<any[]> => {
+  try {
+    const res = await axios.get(`${API_URL}/api/feedback/ai-recommendations`)
+    return res.data
+  } catch (error) {
+    handleApiError(error, "Feedback AI Recommendations")
+    throw error
+  }
+}

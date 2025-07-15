@@ -31,7 +31,8 @@ async def generate_insight_with_retry_local(
     max_tokens: int, # Ini tidak akan digunakan oleh ask_groq saat ini, tapi biarkan di sini
     temperature: float, # Ini tidak akan digunakan oleh ask_groq saat ini, tapi biarkan di sini
     retries: int = 3,
-    delay: int = 2
+    delay: int = 2,
+    expect_object: bool = False  # NEW: Flag to indicate if we expect JSON object vs array
 ) -> str:
     """
     Calls the LLM client with retry logic and robust response validation.
@@ -54,22 +55,43 @@ async def generate_insight_with_retry_local(
             cleaned_response = raw_response.strip()
             
             # Try to extract JSON if wrapped in markdown code blocks
-            json_match = re.search(r'```(?:json)?\s*(\[.*?\])\s*```', cleaned_response, re.DOTALL)
+            json_match = re.search(r'```(?:json)?\s*(\{.*?\}|\[.*?\])\s*```', cleaned_response, re.DOTALL)
             if json_match:
                 cleaned_response = json_match.group(1)
                 print(f"Attempt {i+1}: Extracted JSON from markdown: {repr(cleaned_response[:200])}")
-            
-            # Try to find JSON array in the response
-            json_array_match = re.search(r'(\[.*?\])', cleaned_response, re.DOTALL)
-            if json_array_match:
-                cleaned_response = json_array_match.group(1)
-                print(f"Attempt {i+1}: Found JSON array: {repr(cleaned_response[:200])}")
+            else:
+                # If no markdown blocks, try to find JSON structure in the response
+                if expect_object:
+                    # Look for JSON object structure
+                    json_obj_match = re.search(r'(\{.*\})', cleaned_response, re.DOTALL)
+                    if json_obj_match:
+                        cleaned_response = json_obj_match.group(1)
+                        print(f"Attempt {i+1}: Found JSON object: {repr(cleaned_response[:200])}")
+                else:
+                    # Look for JSON array structure
+                    json_array_match = re.search(r'(\[.*?\])', cleaned_response, re.DOTALL)
+                    if json_array_match:
+                        cleaned_response = json_array_match.group(1)
+                        print(f"Attempt {i+1}: Found JSON array: {repr(cleaned_response[:200])}")
             
             # Attempt to parse to validate JSON
             try:
                 parsed_json = json.loads(cleaned_response)
-                print(f"Attempt {i+1}: Successfully parsed JSON with {len(parsed_json)} items")
+                print(f"Attempt {i+1}: Successfully parsed JSON")
+                
+                # Additional validation based on expected structure
+                if expect_object and not isinstance(parsed_json, dict):
+                    raise ValueError(f"Expected JSON object but got {type(parsed_json)}")
+                elif not expect_object and not isinstance(parsed_json, list):
+                    raise ValueError(f"Expected JSON array but got {type(parsed_json)}")
+                
+                if expect_object:
+                    print(f"Attempt {i+1}: Validated JSON object with keys: {list(parsed_json.keys())}")
+                else:
+                    print(f"Attempt {i+1}: Validated JSON array with {len(parsed_json)} items")
+                
                 return cleaned_response
+                
             except json.JSONDecodeError as jde:
                 print(f"Attempt {i+1}: JSON decode error: {jde}")
                 print(f"Attempt {i+1}: Trying to fix common JSON issues...")
@@ -81,11 +103,23 @@ async def generate_insight_with_retry_local(
                 fixed_response = re.sub(r"'([^']*)':", r'"\1":', fixed_response)
                 fixed_response = re.sub(r":\s*'([^']*)'", r': "\1"', fixed_response)
                 
+                # Fix trailing commas
+                fixed_response = re.sub(r',\s*}', '}', fixed_response)
+                fixed_response = re.sub(r',\s*]', ']', fixed_response)
+                
                 # Try parsing again
                 try:
                     parsed_json = json.loads(fixed_response)
                     print(f"Attempt {i+1}: Successfully parsed fixed JSON")
+                    
+                    # Additional validation for fixed JSON
+                    if expect_object and not isinstance(parsed_json, dict):
+                        raise ValueError(f"Expected JSON object but got {type(parsed_json)}")
+                    elif not expect_object and not isinstance(parsed_json, list):
+                        raise ValueError(f"Expected JSON array but got {type(parsed_json)}")
+                    
                     return fixed_response
+                    
                 except json.JSONDecodeError:
                     raise ValueError(f"Could not parse JSON after fixes: {jde}")
             
@@ -107,7 +141,6 @@ async def generate_insight_with_retry_local(
                 raise
 
     return ""
-
 
 async def analyze_and_process_feedback_batch(db: Session, limit: int = 10) -> int:
     """
@@ -147,26 +180,28 @@ Rating Pengguna: {feedback_item.rating}
 {member_context}
 {additional_context}
 
-Berikan respons dalam format JSON berikut:
+Berikan respons dalam format JSON object yang valid:
 {{
-  "sentiment": "Positive" | "Negative" | "Neutral",
-  "sentiment_score": 0.0 to 1.0,
+  "sentiment": "Positive" atau "Negative" atau "Neutral",
+  "sentiment_score": 0.0 sampai 1.0,
   "topics": [
     {{
       "topic": "string",
-      "sentiment_score": 0.0 to 1.0,
-      "confidence": 0.0 to 1.0
+      "sentiment_score": 0.0 sampai 1.0,
+      "confidence": 0.0 sampai 1.0
     }}
   ]
 }}
 
-Pastikan respons adalah JSON yang valid dan dapat di-parse."""
+Pastikan respons adalah JSON object yang valid dan dapat di-parse."""
             
+            # Use the fixed retry function with expect_object=True
             raw_llm_response_text = await generate_insight_with_retry_local(
-                ask_groq, # Meneruskan fungsi ask_groq
-                user_prompt_content, # ✅ FIXED: Meneruskan user prompt sebagai string tunggal
-                max_tokens=500, # Ini tidak akan digunakan oleh generate_insight_with_retry_local saat ini
-                temperature=0.5 # Ini tidak akan digunakan oleh generate_insight_with_retry_local saat ini
+                ask_groq,
+                user_prompt_content,
+                max_tokens=500,
+                temperature=0.5,
+                expect_object=True  # Expecting JSON object
             )
             
             llm_result = json.loads(raw_llm_response_text)
@@ -249,7 +284,7 @@ async def generate_overall_ai_insights(db: Session) -> List[AIInsight]:
         # Enhanced prompt with clearer JSON format specification
         user_prompt_content = f"""Anda adalah AI Business Advisor yang memberikan insight tingkat tinggi berdasarkan data sentimen feedback. 
 
-PENTING: Respons harus dalam format JSON array yang valid seperti ini:
+Berikan respons dalam format JSON array yang valid seperti ini:
 [
   {{
     "insight_type": "trend",
@@ -275,11 +310,13 @@ Distribusi Sentimen Keseluruhan:
 
 Berikan 3-5 insight dalam format JSON array yang valid. Fokus pada isu yang perlu perhatian, tren positif/negatif signifikan, atau area kekuatan."""
         
+        # Use the fixed retry function with expect_object=False (expecting array)
         raw_llm_response_text = await generate_insight_with_retry_local(
-            ask_groq, # Meneruskan fungsi ask_groq
-            user_prompt_content, # ✅ FIXED: Meneruskan user prompt sebagai string tunggal
+            ask_groq,
+            user_prompt_content,
             max_tokens=1000,
-            temperature=0.7
+            temperature=0.7,
+            expect_object=False  # Expecting JSON array
         )
         
         llm_results = json.loads(raw_llm_response_text)
@@ -340,7 +377,6 @@ Berikan 3-5 insight dalam format JSON array yang valid. Fokus pada isu yang perl
             )
         ]
 
-
 # Example usage (for testing, not part of the service itself)
 if __name__ == '__main__':
     # This block is for local testing of the AI generation, assuming you have a local DB session
@@ -357,3 +393,272 @@ if __name__ == '__main__':
     # finally:
     #     # db_session.close()
     pass
+
+async def generate_ai_recommendations(db: Session) -> Dict[str, Any]:
+    """
+    Generate AI-powered recommendations based on sentiment analysis and feedback data.
+    Returns structured recommendations with priority actions, opportunities, and metrics.
+    """
+    try:
+        # Get recent data for analysis
+        summary = crud_feedback.get_sentiment_dashboard_summary(db)
+        topic_analysis = crud_feedback.get_topic_analysis_data(db)
+        recent_feedback = crud_feedback.get_feedback_list(db, limit=50)
+        
+        # Check if we have data
+        if not summary or not topic_analysis:
+            return {
+                "priority_actions": [
+                    {
+                        "title": "Tidak Ada Data Feedback",
+                        "description": "Belum ada data feedback yang cukup untuk menghasilkan rekomendasi. Mulai kumpulkan feedback dari member.",
+                        "urgency": "medium"
+                    }
+                ],
+                "opportunities": [
+                    {
+                        "title": "Mulai Sistem Feedback",
+                        "description": "Implementasikan sistem pengumpulan feedback untuk mendapatkan insight tentang kepuasan member.",
+                        "potential_impact": "high"
+                    }
+                ],
+                "metrics_to_monitor": [
+                    {
+                        "metric": "Jumlah Feedback per Bulan",
+                        "target": "Minimal 50 feedback per bulan",
+                        "current_value": "0"
+                    }
+                ]
+            }
+        
+        # Prepare data for AI analysis
+        negative_topics = [topic for topic in topic_analysis if topic.sentiment_score < -0.3]
+        positive_topics = [topic for topic in topic_analysis if topic.sentiment_score > 0.5]
+        
+        # Enhanced prompt for structured recommendations
+        user_prompt_content = f"""Sebagai AI Business Advisor untuk gym, analisis data sentimen feedback berikut dan berikan rekomendasi yang terstruktur.
+
+Data Sentimen:
+- Total Feedback: {summary.total_feedback}
+- Sentimen Positif: {summary.positive_percentage}%
+- Sentimen Negatif: {summary.negative_percentage}%
+- Rating Rata-rata: {summary.avg_rating}
+
+Topik dengan Sentimen Negatif (perlu perhatian):
+{json.dumps([{"topic": t.topic, "sentiment_score": float(t.sentiment_score), "frequency": t.frequency} for t in negative_topics[:5]], indent=2)}
+
+Topik dengan Sentimen Positif (kekuatan):
+{json.dumps([{"topic": t.topic, "sentiment_score": float(t.sentiment_score), "frequency": t.frequency} for t in positive_topics[:5]], indent=2)}
+
+Berikan respons dalam format JSON object yang valid (bukan array). Respons harus dimulai dengan {{ dan berakhir dengan }}.
+
+{{
+  "priority_actions": [
+    {{
+      "title": "Judul Tindakan Prioritas",
+      "description": "Deskripsi detail tindakan yang perlu segera dilakukan berdasarkan data sentimen negatif",
+      "urgency": "high"
+    }}
+  ],
+  "opportunities": [
+    {{
+      "title": "Judul Peluang",
+      "description": "Deskripsi peluang peningkatan berdasarkan tren positif atau area yang bisa dioptimalkan",
+      "potential_impact": "high"
+    }}
+  ],
+  "metrics_to_monitor": [
+    {{
+      "metric": "Nama Metrik yang Spesifik",
+      "target": "Target yang ingin dicapai (berikan angka konkret jika memungkinkan)",
+      "current_value": "Nilai saat ini berdasarkan data"
+    }}
+  ]
+}}
+
+Berikan 2-3 item untuk setiap kategori. Fokus pada tindakan yang dapat diukur dan spesifik berdasarkan data sentimen yang tersedia. Urgency: "high", "medium", atau "low". Potential_impact: "high", "medium", atau "low"."""
+
+        # Use the fixed retry function with expect_object=True
+        raw_llm_response_text = await generate_insight_with_retry_local(
+            ask_groq,
+            user_prompt_content,
+            max_tokens=1200,
+            temperature=0.6,
+            expect_object=True  # NEW: Tell the function we expect a JSON object
+        )
+        
+        # Parse the JSON response (should be clean now)
+        try:
+            llm_result = json.loads(raw_llm_response_text)
+            print(f"Successfully parsed JSON response")
+        except json.JSONDecodeError as jde:
+            print(f"Final JSON parsing failed: {jde}")
+            raise ValueError(f"Could not parse JSON response: {jde}")
+        
+        # Validate that llm_result is a dict (JSON object)
+        if not isinstance(llm_result, dict):
+            raise ValueError(f"Expected JSON object but got {type(llm_result)}")
+        
+        # Validate and structure the response with defaults
+        recommendations = {
+            "priority_actions": llm_result.get("priority_actions", []),
+            "opportunities": llm_result.get("opportunities", []),
+            "metrics_to_monitor": llm_result.get("metrics_to_monitor", [])
+        }
+        
+        # Validate each section and fix any issues
+        for section in ['priority_actions', 'opportunities', 'metrics_to_monitor']:
+            if not isinstance(recommendations[section], list):
+                print(f"Warning: {section} is not a list, converting to empty list")
+                recommendations[section] = []
+        
+        # Validate individual items in priority_actions
+        valid_priority_actions = []
+        for action in recommendations['priority_actions']:
+            if isinstance(action, dict):
+                # Ensure required fields and valid values
+                valid_action = {
+                    "title": action.get("title", "Tindakan Prioritas"),
+                    "description": action.get("description", "Deskripsi tidak tersedia"),
+                    "urgency": action.get("urgency", "medium")
+                }
+                # Validate urgency value
+                if valid_action["urgency"] not in ["high", "medium", "low"]:
+                    valid_action["urgency"] = "medium"
+                valid_priority_actions.append(valid_action)
+        recommendations['priority_actions'] = valid_priority_actions
+        
+        # Validate individual items in opportunities
+        valid_opportunities = []
+        for opportunity in recommendations['opportunities']:
+            if isinstance(opportunity, dict):
+                valid_opportunity = {
+                    "title": opportunity.get("title", "Peluang"),
+                    "description": opportunity.get("description", "Deskripsi tidak tersedia"),
+                    "potential_impact": opportunity.get("potential_impact", "medium")
+                }
+                # Validate potential_impact value
+                if valid_opportunity["potential_impact"] not in ["high", "medium", "low"]:
+                    valid_opportunity["potential_impact"] = "medium"
+                valid_opportunities.append(valid_opportunity)
+        recommendations['opportunities'] = valid_opportunities
+        
+        # Validate individual items in metrics_to_monitor
+        valid_metrics = []
+        for metric in recommendations['metrics_to_monitor']:
+            if isinstance(metric, dict):
+                valid_metric = {
+                    "metric": metric.get("metric", "Metrik"),
+                    "target": metric.get("target", "Target tidak tersedia"),
+                    "current_value": metric.get("current_value", "Nilai tidak tersedia")
+                }
+                valid_metrics.append(valid_metric)
+        recommendations['metrics_to_monitor'] = valid_metrics
+        
+        # If any section is empty, provide default content
+        if not recommendations['priority_actions']:
+            recommendations['priority_actions'] = [
+                {
+                    "title": "Monitoring Sentimen Feedback",
+                    "description": "Lakukan monitoring rutin terhadap sentimen feedback untuk mengidentifikasi area yang perlu diperbaiki.",
+                    "urgency": "medium"
+                }
+            ]
+        
+        if not recommendations['opportunities']:
+            recommendations['opportunities'] = [
+                {
+                    "title": "Optimasi Berdasarkan Feedback Positif",
+                    "description": "Manfaatkan area dengan sentimen positif sebagai kekuatan untuk meningkatkan kepuasan member secara keseluruhan.",
+                    "potential_impact": "high"
+                }
+            ]
+        
+        if not recommendations['metrics_to_monitor']:
+            recommendations['metrics_to_monitor'] = [
+                {
+                    "metric": "Persentase Sentimen Positif",
+                    "target": "Minimal 70% feedback positif",
+                    "current_value": f"{summary.positive_percentage}%"
+                }
+            ]
+        
+        print(f"Successfully generated recommendations with {len(recommendations['priority_actions'])} priority actions, {len(recommendations['opportunities'])} opportunities, and {len(recommendations['metrics_to_monitor'])} metrics")
+        
+        return recommendations
+        
+    except ValueError as ve:
+        print(f"ValueError in AI recommendations: {ve}")
+        return {
+            "priority_actions": [
+                {
+                    "title": "Error Parsing AI Response",
+                    "description": f"Tidak dapat memproses respons AI: {str(ve)[:200]}...",
+                    "urgency": "low"
+                }
+            ],
+            "opportunities": [
+                {
+                    "title": "Coba Ulang Rekomendasi",
+                    "description": "Silakan coba refresh halaman untuk menghasilkan rekomendasi baru.",
+                    "potential_impact": "medium"
+                }
+            ],
+            "metrics_to_monitor": [
+                {
+                    "metric": "Status Sistem AI",
+                    "target": "Sistem AI berfungsi normal",
+                    "current_value": "Error"
+                }
+            ]
+        }
+    except json.JSONDecodeError as je:
+        print(f"JSON decode error in AI recommendations: {je}")
+        return {
+            "priority_actions": [
+                {
+                    "title": "Error Format Response AI",
+                    "description": "Respons AI tidak dalam format yang valid. Sistem sedang mencoba memperbaiki masalah ini.",
+                    "urgency": "low"
+                }
+            ],
+            "opportunities": [
+                {
+                    "title": "Perbaikan Sistem AI",
+                    "description": "Tim teknis sedang mengoptimalkan sistem AI untuk memberikan respons yang lebih konsisten.",
+                    "potential_impact": "high"
+                }
+            ],
+            "metrics_to_monitor": [
+                {
+                    "metric": "Tingkat Keberhasilan AI",
+                    "target": "95% respons valid",
+                    "current_value": "Error"
+                }
+            ]
+        }
+    except Exception as e:
+        print(f"Unexpected error generating AI recommendations: {e}")
+        return {
+            "priority_actions": [
+                {
+                    "title": "Error Sistem",
+                    "description": f"Terjadi error sistem: {str(e)[:100]}...",
+                    "urgency": "low"
+                }
+            ],
+            "opportunities": [
+                {
+                    "title": "Stabilitas Sistem",
+                    "description": "Pastikan sistem berjalan dengan stabil untuk hasil yang optimal.",
+                    "potential_impact": "medium"
+                }
+            ],
+            "metrics_to_monitor": [
+                {
+                    "metric": "Uptime Sistem",
+                    "target": "99.5% uptime",
+                    "current_value": "Error"
+                }
+            ]
+        }

@@ -73,7 +73,6 @@ async def get_member_names(db: Session = Depends(get_db)):
     """Get all member names for filters."""
     return crud_feedback.get_all_member_names(db)
 
-
 # --- AI Insights Endpoints ---
 @router.get("/ai-insights/overall", response_model=List[AIInsight])
 async def get_overall_ai_insights(db: Session = Depends(get_db)):
@@ -83,6 +82,36 @@ async def get_overall_ai_insights(db: Session = Depends(get_db)):
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to generate overall AI insights: {e}")
 
+@router.get("/ai-recommendations", response_model=Dict[str, Any])
+async def get_ai_recommendations(db: Session = Depends(get_db)):
+    """Generate AI-powered recommendations based on sentiment analysis."""
+    try:
+        return await sentiment_ai_analyzer.generate_ai_recommendations(db)
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to generate AI recommendations: {e}")
+
+@router.get("/monthly-sentiment-trends", response_model=List[Dict[str, Any]])
+async def get_monthly_sentiment_trends(
+    year: int = Query(2024, description="Year for monthly trends"),
+    db: Session = Depends(get_db)
+):
+    """Get monthly sentiment trends for a specific year."""
+    try:
+        return crud_feedback.get_monthly_sentiment_trends(db, year=year)
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to fetch monthly sentiment trends: {e}")
+
+@router.get("/topic-sentiment-comparison", response_model=Dict[str, List[Dict[str, Any]]])
+async def get_topic_sentiment_comparison(
+    year: int = Query(2024, description="Year for topic comparison"),
+    db: Session = Depends(get_db)
+):
+    """Get topic sentiment comparison between first and second half of year."""
+    try:
+        return crud_feedback.get_topic_sentiment_comparison(db, year=year)
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to fetch topic sentiment comparison: {e}")
+
 @router.post("/process-ai-batch", response_model=Dict[str, int], status_code=status.HTTP_200_OK)
 async def process_feedback_with_ai(limit: int = Query(10, ge=1), db: Session = Depends(get_db)):
     """Trigger AI processing for a batch of unprocessed feedback."""
@@ -91,7 +120,6 @@ async def process_feedback_with_ai(limit: int = Query(10, ge=1), db: Session = D
         return {"processed_count": processed_count}
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to process feedback with AI: {e}")
-
 
 # --- Basic CRUD for Feedback (for management, if needed) ---
 @router.get("/list", response_model=List[FeedbackListItem])

@@ -261,3 +261,113 @@ def get_all_feedback_types(db: Session) -> List[str]:
 def get_all_member_names(db: Session) -> List[str]:
     results = db.query(Member.name).order_by(Member.name).all()
     return [r.name for r in results if r.name]
+
+def get_monthly_sentiment_trends(db: Session, year: int = 2024) -> List[Dict[str, Any]]:
+    """Get monthly sentiment trends for a specific year"""
+    try:
+        monthly_data = []
+        
+        for month in range(1, 13):
+            # Get all feedback for this month
+            month_feedback = db.query(Feedback).filter(
+                extract('year', Feedback.feedback_date) == year,
+                extract('month', Feedback.feedback_date) == month
+            ).all()
+            
+            if not month_feedback:
+                monthly_data.append({
+                    'month': month,
+                    'month_name': ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
+                                  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][month-1],
+                    'positive_percentage': 0,
+                    'neutral_percentage': 0,
+                    'negative_percentage': 0,
+                    'total_feedback': 0
+                })
+                continue
+                
+            total_count = len(month_feedback)
+            positive_count = len([f for f in month_feedback if f.sentiment == 'Positive'])
+            neutral_count = len([f for f in month_feedback if f.sentiment == 'Neutral'])
+            negative_count = len([f for f in month_feedback if f.sentiment == 'Negative'])
+            
+            monthly_data.append({
+                'month': month,
+                'month_name': ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
+                              'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][month-1],
+                'positive_percentage': round((positive_count / total_count * 100) if total_count > 0 else 0, 1),
+                'neutral_percentage': round((neutral_count / total_count * 100) if total_count > 0 else 0, 1),
+                'negative_percentage': round((negative_count / total_count * 100) if total_count > 0 else 0, 1),
+                'total_feedback': total_count
+            })
+        
+        return monthly_data
+    except Exception as e:
+        print(f"Error in get_monthly_sentiment_trends: {e}")
+        return []
+
+def get_topic_sentiment_comparison(db: Session, year: int = 2024) -> Dict[str, List[Dict[str, Any]]]:
+    """Compare topic sentiment between first and second half of the year"""
+    try:
+        # First half (Jan-Jun)
+        first_half_topics = db.query(
+            FeedbackTopic.topic,
+            func.avg(FeedbackTopic.sentiment_score).label('avg_sentiment'),
+            func.count(FeedbackTopic.topic_id).label('frequency')
+        ).join(Feedback).filter(
+            extract('year', Feedback.feedback_date) == year,
+            extract('month', Feedback.feedback_date) <= 6
+        ).group_by(FeedbackTopic.topic).all()
+        
+        # Second half (Jul-Dec)
+        second_half_topics = db.query(
+            FeedbackTopic.topic,
+            func.avg(FeedbackTopic.sentiment_score).label('avg_sentiment'),
+            func.count(FeedbackTopic.topic_id).label('frequency')
+        ).join(Feedback).filter(
+            extract('year', Feedback.feedback_date) == year,
+            extract('month', Feedback.feedback_date) > 6
+        ).group_by(FeedbackTopic.topic).all()
+        
+        # Create dictionaries for easy lookup
+        first_half_dict = {topic.topic: float(topic.avg_sentiment) for topic in first_half_topics if topic.avg_sentiment is not None}
+        second_half_dict = {topic.topic: float(topic.avg_sentiment) for topic in second_half_topics if topic.avg_sentiment is not None}
+        
+        # Find topics that appear in both halves
+        common_topics = set(first_half_dict.keys()) & set(second_half_dict.keys())
+        
+        improving_topics = []
+        declining_topics = []
+        
+        for topic in common_topics:
+            first_sentiment = first_half_dict[topic]
+            second_sentiment = second_half_dict[topic]
+            change_percentage = ((second_sentiment - first_sentiment) / abs(first_sentiment)) * 100 if first_sentiment != 0 else 0
+            
+            if abs(change_percentage) >= 5:  # Only include significant changes
+                topic_data = {
+                    'topic': topic,
+                    'change_percentage': round(change_percentage, 1),
+                    'first_half_sentiment': round(first_sentiment, 2),
+                    'second_half_sentiment': round(second_sentiment, 2)
+                }
+                
+                if change_percentage > 0:
+                    improving_topics.append(topic_data)
+                else:
+                    declining_topics.append(topic_data)
+        
+        # Sort by absolute change percentage
+        improving_topics.sort(key=lambda x: x['change_percentage'], reverse=True)
+        declining_topics.sort(key=lambda x: abs(x['change_percentage']), reverse=True)
+        
+        return {
+            'improving': improving_topics[:5],  # Top 5
+            'declining': declining_topics[:5]   # Top 5
+        }
+    except Exception as e:
+        print(f"Error in get_topic_sentiment_comparison: {e}")
+        return {
+            'improving': [],
+            'declining': []
+        }
