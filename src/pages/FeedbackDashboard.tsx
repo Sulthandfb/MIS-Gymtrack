@@ -15,6 +15,7 @@ import {
   Users,
   Calendar,
   Tag,
+  Lightbulb,
 } from "lucide-react"
 import {
   LineChart,
@@ -34,7 +35,8 @@ import {
 import { AppSidebar } from "@/components/Sidebar"
 // import { MemberListModal } from "@/components/member-list-modal"; // Tidak diperlukan di sini
 import { AIInsights } from "@/components/AIInsights" // Component untuk menampilkan AI insights
-import { AIRecommendations } from "@/components/AIRecommendations" // ✅ NEW: Component untuk AI Recommendations
+import { AIRecommendations } from "@/components/AIRecommendations" // ✅ FIXED: Import AIRecommendations component
+import type { AIRecommendation } from "@/components/AIRecommendations" // Jika belum diimport
 import { SixMonthTrend } from "@/components/SixMonthTrend" // ✅ NEW: Component untuk Six Month Trend
 import {
   fetchSentimentSummary,
@@ -309,7 +311,7 @@ export default function SentimentDashboard() {
   const [feedbackFilters, setFeedbackFilters] = useState<FeedbackFilters>({}) // State untuk filter Feedback List
 
   // ✅ NEW: State untuk fitur baru
-  const [aiRecommendations, setAIRecommendations] = useState<any[]>([])
+  const [aiRecommendations, setAIRecommendations] = useState<AIRecommendation | null>(null)
   const [monthlyTrends, setMonthlyTrends] = useState<any[]>([])
   const [topicComparison, setTopicComparison] = useState<any>({ improving: [], declining: [] })
   const [newFeaturesTab, setNewFeaturesTab] = useState("tren") // Tab untuk fitur baru
@@ -378,7 +380,7 @@ export default function SentimentDashboard() {
       })
 
       // ✅ NEW: Set fitur baru dengan fallbacks
-      setAIRecommendations(processResult(aiRecommendationsData, []))
+      setAIRecommendations(processResult(aiRecommendationsData, null))
       setMonthlyTrends(processResult(monthlyTrendsData, []))
       setTopicComparison(processResult(topicComparisonData, { improving: [], declining: [] }))
     } catch (err: any) {
@@ -606,7 +608,14 @@ export default function SentimentDashboard() {
                   </TabsContent>
 
                   <TabsContent value="rekomendasi" className="mt-6">
-                    <AIRecommendations recommendations={aiRecommendations[0]} />
+                    {aiRecommendations ? (
+                      <AIRecommendations recommendations={aiRecommendations} />
+                    ) : (
+                      <div className="text-center text-sm text-gray-400 py-6">
+                        <Lightbulb className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+                        Loading AI recommendations...
+                      </div>
+                    )}
                   </TabsContent>
                 </Tabs>
               </div>

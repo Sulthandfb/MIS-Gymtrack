@@ -2,6 +2,8 @@
 
 import { AlertTriangle, Lightbulb, TrendingUp, Target } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
+export type { AIRecommendation }
+
 
 interface AIRecommendation {
   priority_actions: Array<{
