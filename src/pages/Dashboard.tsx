@@ -245,29 +245,31 @@ const Dashboard: React.FC = () => {
 
                 {/* Trainers Card */}
                 <div className="bg-white p-4 lg:p-6 rounded-lg shadow-sm border border-gray-200">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                        <UserCheck className="w-5 h-5 text-green-600" />
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-gray-900">Trainers</h3>
-                        <p className="text-xs text-gray-500">Active trainers</p>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <div className="text-2xl lg:text-3xl font-bold text-gray-900">{metrics.trainerStats?.total_trainers || 0}</div>
-                    <div className="flex items-center text-sm">
-                      <span className="text-green-600 font-medium">{metrics.trainerStats?.active_trainers || 0} active</span>
-                      <span className="text-gray-400 mx-2">•</span>
-                      <span className="text-blue-600 font-medium">Avg: {metrics.trainerStats?.avg_satisfaction || 0}/5</span>
-                    </div>
-                    <div className="flex items-center text-xs text-gray-500">
-                      <Calendar className="w-3 h-3 mr-1" />
-                      <span>Sessions: {metrics.trainerStats?.total_sessions || 0}</span>
-                    </div>
-                  </div>
+                <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                    <UserCheck className="w-5 h-5 text-green-600" />
+                </div>
+                <div>
+                    <h3 className="font-semibold text-gray-900">Trainers</h3>
+                    <p className="text-xs text-gray-500">Active trainers</p>
+                </div>
+                </div>
+                </div>
+                <div className="space-y-2">
+                {/* Change from total_trainers to active_trainers, or consider if you intended a different total */}
+                <div className="text-2xl lg:text-3xl font-bold text-gray-900">{metrics.trainerStats?.active_trainers || 0}</div>
+                <div className="flex items-center text-sm">
+                <span className="text-green-600 font-medium">{metrics.trainerStats?.active_trainers || 0} active</span>
+                <span className="text-gray-400 mx-2">•</span>
+                <span className="text-blue-600 font-medium">Avg: {metrics.trainerStats?.avg_satisfaction || 0}/5</span>
+                </div>
+                <div className="flex items-center text-xs text-gray-500">
+                <Calendar className="w-3 h-3 mr-1" />
+                {/* Change from total_sessions to weekly_classes */}
+                <span>Sessions: {metrics.trainerStats?.weekly_classes || 0}</span>
+                </div>
+                </div>
                 </div>
 
                 {/* Products Card */}
