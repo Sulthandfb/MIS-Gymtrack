@@ -25,7 +25,7 @@ import {
   type IncomeVsExpenseData,
   type BreakdownData,
   type Transaction,
-  type AIInsight as FinanceAIInsight, // Rename to avoid conflict with Feedback AIInsight
+  type AIInsight as FinanceAIInsight,
   type IncomeAnalysis,
   type ExpenseAnalysis,
   type TransactionFilters,
@@ -33,8 +33,6 @@ import {
   handleApiError,
   API_URL,
 } from "@/types/finance"
-
-// NEW: Import Inventory Types
 import type {
   EquipmentCategory,
   Equipment,
@@ -48,18 +46,51 @@ import type {
   InventoryFilters,
   InventoryDashboardData,
 } from "@/types/inventory"
-
-// NEW: Import Feedback Types
 import type {
   FeedbackDashboardSummary,
   SentimentDistribution,
   TopicAnalysisItem,
   DailySentimentTrend,
-  AIInsight, // This is the AIInsight for Feedback
+  AIInsight,
   FeedbackListItem,
-  FeedbackDashboardData as FeedbackDashboardCombinedData, // Rename to avoid conflict
+  FeedbackDashboardData as FeedbackDashboardCombinedData,
   FeedbackFilters,
 } from "@/types/feedback"
+// ✅ NEW: Import Chatbot Types
+import type { ChatRequest, ChatResponse, ChatSession, ChatMessage } from "@/types/chatbot"
+
+// ========================================
+// ✅ NEW: CHATBOT API FUNCTIONS
+// ========================================
+export const sendChatMessage = async (request: ChatRequest): Promise<ChatResponse> => {
+  try {
+    const res = await axios.post(`${API_URL}/api/ai/chat`, request)
+    return res.data as ChatResponse
+  } catch (error) {
+    console.error("Error sending chat message:", error)
+    throw error
+  }
+}
+
+export const getChatHistory = async (sessionId: number, limit = 10): Promise<ChatMessage[]> => {
+  try {
+    const res = await axios.get(`${API_URL}/api/ai/chat/history/${sessionId}?limit=${limit}`)
+    return res.data as ChatMessage[]
+  } catch (error) {
+    console.error("Error fetching chat history:", error)
+    throw error
+  }
+}
+
+export const getOrCreateSession = async (userId?: string): Promise<ChatSession> => {
+  try {
+    const res = await axios.get(`${API_URL}/api/ai/chat/session/${userId || "anonymous"}`)
+    return res.data as ChatSession
+  } catch (error) {
+    console.error("Error getting/creating session:", error)
+    throw error
+  }
+}
 
 // ========================================
 // MEMBER API FUNCTIONS (unchanged)
@@ -229,7 +260,6 @@ export const fetchCrossSellData = async (): Promise<CrossSellData[]> => {
   }
 }
 
-// ✅ UPDATED: Use segmentation-specific insights
 export const fetchSegmentationInsights = async (filters: {
   goal?: string
   ageRange?: string
@@ -247,7 +277,7 @@ export const fetchSegmentationInsights = async (filters: {
 }
 
 // ========================================
-// NEW: PRICE SIMULATION API FUNCTIONS (unchanged)
+// PRICE SIMULATION API FUNCTIONS (unchanged)
 // ========================================
 export const fetchSimulationProducts = async (): Promise<any[]> => {
   try {
@@ -360,7 +390,6 @@ export const fetchRecentTransactions = async (limit = 10): Promise<Transaction[]
   }
 }
 
-// ✅ NEW: Filtered transactions with pagination (unchanged)
 export const fetchFilteredTransactions = async (filters: TransactionFilters): Promise<FilteredTransactionsResponse> => {
   try {
     const params = new URLSearchParams()
@@ -408,7 +437,6 @@ export const fetchExpenseAnalysis = async (): Promise<ExpenseAnalysis> => {
   }
 }
 
-// Batch API call for finance dashboard (unchanged)
 export const fetchFinanceDashboardData = async () => {
   try {
     const [summary, incomeVsExpenses, incomeBreakdown, expenseBreakdown, recentTransactions, aiInsights] =
@@ -473,7 +501,6 @@ export const fetchInventoryTrends = async (numWeeks = 12): Promise<InventoryTren
   }
 }
 
-// ✅ INVENTORY AI RECOMMENDATIONS (keep original name for inventory)
 export const fetchAIRecommendations = async (managerDecision?: string): Promise<AIInventoryRecommendation[]> => {
   try {
     const params = new URLSearchParams()
@@ -587,7 +614,6 @@ export const deleteEquipment = async (equipmentId: number): Promise<void> => {
   }
 }
 
-// Combined API call for inventory dashboard (unchanged)
 export const fetchInventoryDashboardData = async (filters?: InventoryFilters): Promise<InventoryDashboardData> => {
   try {
     const [summary, equipmentList, trends, categories] = await Promise.all([
@@ -647,7 +673,6 @@ export const fetchProductListData = async (filters: {
   }
 }
 
-// ✅ UPDATED: Use segmentation-specific insights (unchanged)
 export const fetchSegmentationDashboardData = async (filters: {
   goal?: string
   ageRange?: string
@@ -656,7 +681,7 @@ export const fetchSegmentationDashboardData = async (filters: {
     const [segmentationData, crossSellData, insights] = await Promise.all([
       fetchSegmentationData(filters),
       fetchCrossSellData(),
-      fetchSegmentationInsights(filters), // ✅ Now uses segmentation-specific insights
+      fetchSegmentationInsights(filters),
     ])
     return {
       segmentationData,
@@ -670,7 +695,7 @@ export const fetchSegmentationDashboardData = async (filters: {
 }
 
 // ========================================
-// NEW: FEEDBACK API FUNCTIONS (diperbarui)
+// FEEDBACK API FUNCTIONS (unchanged)
 // ========================================
 export const fetchSentimentSummary = async (): Promise<FeedbackDashboardSummary> => {
   try {
@@ -718,7 +743,6 @@ export const fetchDailySentimentTrends = async (
   }
 }
 
-// ✅ FIXED: fetchRecentFeedback sekarang menerima objek FeedbackFilters
 export const fetchRecentFeedback = async (filters?: FeedbackFilters): Promise<FeedbackListItem[]> => {
   try {
     const params = new URLSearchParams()
@@ -777,7 +801,6 @@ export const triggerAIBatchProcessing = async (limit = 10): Promise<{ processed_
   }
 }
 
-// ✅ FIXED: fetchFeedbackDashboardData sekarang mengirim filters ke fetchRecentFeedback
 export const fetchFeedbackDashboardData = async (filters?: FeedbackFilters): Promise<FeedbackDashboardCombinedData> => {
   try {
     const [summary, distribution, topics, trends, recent, aiInsights, types, members] = await Promise.all([
@@ -785,7 +808,7 @@ export const fetchFeedbackDashboardData = async (filters?: FeedbackFilters): Pro
       fetchSentimentDistribution(),
       fetchTopicAnalysis(),
       fetchDailySentimentTrends(filters?.start_date, filters?.end_date),
-      fetchRecentFeedback(filters), // ✅ Kirim filters ke fetchRecentFeedback
+      fetchRecentFeedback(filters),
       fetchOverallAIInsights(),
       fetchAllFeedbackTypes(),
       fetchAllMemberNames(),
@@ -826,7 +849,6 @@ export const fetchTopicSentimentComparison = async (year = 2024): Promise<any> =
   }
 }
 
-// ✅ RENAMED: Feedback AI Recommendations to avoid conflict with Inventory
 export const fetchFeedbackAIRecommendations = async (): Promise<any[]> => {
   try {
     const res = await axios.get(`${API_URL}/api/feedback/ai-recommendations`)

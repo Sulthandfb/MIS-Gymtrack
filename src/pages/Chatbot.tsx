@@ -1,62 +1,57 @@
-
 "use client"
 
 import type React from "react"
-
 import { useState, useRef, useEffect } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import {
-  Brain,
-  Send,
-  ChevronRight,
-  ChevronLeft,
-  Clock,
-  Save,
-  Trash,
-  BarChart,
-  Users,
-  Heart,
-  MessageSquare,
-} from "lucide-react"
-import { cn } from "@/lib/utils"
 import { AppSidebar } from "@/components/Sidebar"
+import { Brain, Send, ArrowLeft, Star, Trash, Mic, Paperclip, Plus, AlertCircle, Wifi, WifiOff } from "lucide-react"
+import { cn } from "@/lib/utils"
+import { sendChatMessage, getChatHistory, getOrCreateSession, testConnection, API_CONFIG } from "@/services/chatbot-api"
+import type { ChatSession } from "@/types/chatbot"
 
 interface Message {
   id: string
   content: string
-  sender: "user" | "ai"
+  sender: "ai" | "user"
   timestamp: string
+  context_used?: Record<string, any>
+  data_sources?: string[]
 }
 
-interface ChatbotProps {
-  isOpen?: boolean
-  onToggle?: () => void
+interface ChatHistory {
+  id: string
+  title: string
+  preview: string
+  date: string
 }
 
-export default function Chatbot({ isOpen, onToggle }: ChatbotProps) {
+export default function Chatbot() {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "1",
       content:
         "Halo! Saya GymTrack AI, asisten virtual yang siap membantu Anda menganalisis data gym. Apa yang ingin Anda ketahui hari ini?",
       sender: "ai",
-      timestamp: new Date().toISOString(),
+      timestamp: "6:38 pm",
     },
   ])
   const [inputValue, setInputValue] = useState("")
   const [isTyping, setIsTyping] = useState(false)
-  const [sidebarOpen, setSidebarOpen] = useState(true)
-  const [promptsOpen, setPromptsOpen] = useState(true)
+  const [selectedTab, setSelectedTab] = useState("Member")
+  const [currentSession, setCurrentSession] = useState<ChatSession | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
+  const [connectionStatus, setConnectionStatus] = useState<"connected" | "disconnected" | "checking">("checking")
+
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
-  // Contoh riwayat chat
-  const chatHistory = [
+  // Sample chat history
+  const chatHistory: ChatHistory[] = [
     {
       id: "chat1",
       title: "Analisis Member Baru",
@@ -66,112 +61,151 @@ export default function Chatbot({ isOpen, onToggle }: ChatbotProps) {
     {
       id: "chat2",
       title: "Performa Trainer",
-      preview: "Siapa trainer dengan rating tertinggi bulan ini?",
+      preview: "Siapa trainer dengan rating tertinggi?",
       date: "12 Mei 2023",
-    },
-    {
-      id: "chat3",
-      title: "Analisis Pendapatan",
-      preview: "Bandingkan pendapatan Q1 dan Q2 tahun ini",
-      date: "10 Mei 2023",
-    },
-    {
-      id: "chat4",
-      title: "Prediksi Kehadiran",
-      preview: "Prediksi kehadiran member untuk minggu depan",
-      date: "5 Mei 2023",
     },
   ]
 
-  // Contoh saran prompt
-  const promptSuggestions = {
-    "Member Insights": [
-      "Berapa tingkat retensi member dalam 6 bulan terakhir?",
-      "Apa alasan utama member berhenti berlangganan?",
-      "Bagaimana demografi member kita berubah tahun ini?",
-      "Member dari kelompok usia mana yang paling aktif?",
+  // Business-focused prompts untuk gym management
+  const prompts = {
+    Member: [
+      "Berapa total member aktif saat ini?",
+      "Bagaimana distribusi jenis membership?",
+      "Siapa member yang baru bergabung minggu ini?",
+      "Berapa tingkat retensi member bulan ini?",
     ],
-    "Fitness Trends": [
-      "Kelas apa yang paling populer bulan ini?",
-      "Bagaimana tren penggunaan alat kardio vs beban?",
-      "Waktu kunjungan terbanyak dalam seminggu?",
-      "Berapa rata-rata durasi latihan member?",
+    Trainer: [
+      "Siapa trainer dengan rating tertinggi?",
+      "Bagaimana distribusi spesialisasi trainer?",
+      "Berapa jumlah trainer aktif saat ini?",
+      "Trainer mana yang paling banyak diminati?",
     ],
-    "Business Analytics": [
-      "Bagaimana perbandingan pendapatan tahun ini vs tahun lalu?",
-      "Produk apa yang memberikan margin tertinggi?",
-      "Berapa biaya akuisisi per member baru?",
-      "Prediksi pendapatan untuk kuartal berikutnya",
+    Keuangan: [
+      "Bagaimana performa pendapatan bulan ini?",
+      "Berapa total pengeluaran bulan ini?",
+      "Apa sumber pendapatan terbesar?",
+      "Bagaimana profit margin bulan ini?",
+    ],
+    Inventori: [
+      "Peralatan apa yang perlu maintenance?",
+      "Berapa total peralatan yang berfungsi baik?",
+      "Kategori peralatan apa yang paling banyak?",
+      "Peralatan apa yang baru dibeli?",
+    ],
+    Feedback: [
+      "Bagaimana sentiment feedback member secara keseluruhan?",
+      "Apa keluhan yang paling sering muncul?",
+      "Berapa rating rata-rata dari member?",
+      "Feedback positif apa yang paling banyak?",
+    ],
+    Produk: [
+      "Produk apa yang paling laris?",
+      "Berapa stok produk yang tersisa?",
+      "Produk mana yang perlu restock?",
+      "Bagaimana performa penjualan produk?",
     ],
   }
 
-  // Efek scroll ke bawah saat ada pesan baru
+  // Test connection on component mount
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-  }, [messages])
+    const checkConnection = async () => {
+      setConnectionStatus("checking")
+      const isConnected = await testConnection()
+      setConnectionStatus(isConnected ? "connected" : "disconnected")
 
-  // Simulasi respons AI
-  const simulateResponse = (userMessage: string) => {
-    setIsTyping(true)
-
-    // Simulasi delay respons
-    setTimeout(() => {
-      let response = ""
-
-      // Logika sederhana untuk menentukan respons berdasarkan kata kunci
-      if (userMessage.toLowerCase().includes("member")) {
-        response =
-          "Berdasarkan data terkini, kita memiliki 1,248 member aktif dengan tingkat retensi 87%. Terjadi peningkatan 12% dari bulan sebelumnya. Mayoritas member baru berasal dari program referral dan kampanye media sosial."
-      } else if (userMessage.toLowerCase().includes("pendapatan") || userMessage.toLowerCase().includes("revenue")) {
-        response =
-          "Pendapatan bulan ini mencapai Rp 45,8 juta, meningkat 8% dari bulan sebelumnya. Sumber pendapatan terbesar berasal dari membership (65%), diikuti oleh penjualan produk (20%), dan personal training (15%)."
-      } else if (userMessage.toLowerCase().includes("trainer") || userMessage.toLowerCase().includes("pelatih")) {
-        response =
-          "Saat ini ada 24 trainer aktif dengan rata-rata rating 4.7/5. Trainer dengan performa tertinggi adalah Budi dengan rating 4.9/5 dan tingkat retensi klien 95%. Kelas yang dipimpin oleh trainer memiliki tingkat kehadiran 78%."
-      } else if (userMessage.toLowerCase().includes("kelas") || userMessage.toLowerCase().includes("class")) {
-        response =
-          "Kelas paling populer bulan ini adalah HIIT dengan rata-rata kehadiran 92%. Diikuti oleh Yoga (85%) dan Zumba (80%). Kelas pagi (6-8 pagi) memiliki tingkat kehadiran tertinggi dibandingkan slot waktu lainnya."
-      } else {
-        response =
-          "Berdasarkan analisis data terkini, performa gym menunjukkan tren positif dengan peningkatan di beberapa area kunci. Apakah ada metrik atau area spesifik yang ingin Anda ketahui lebih detail?"
+      if (!isConnected) {
+        setError(`Tidak dapat terhubung ke server di ${API_CONFIG.BASE_URL}. Pastikan backend sedang berjalan.`)
       }
-
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: Date.now().toString(),
-          content: response,
-          sender: "ai",
-          timestamp: new Date().toISOString(),
-        },
-      ])
-      setIsTyping(false)
-    }, 2000)
-  }
-
-  const handleSendMessage = () => {
-    if (inputValue.trim() === "") return
-
-    const newMessage = {
-      id: Date.now().toString(),
-      content: inputValue,
-      sender: "user" as const,
-      timestamp: new Date().toISOString(),
     }
 
-    setMessages((prev) => [...prev, newMessage])
-    setInputValue("")
+    checkConnection()
+  }, [])
 
-    // Fokus kembali ke input setelah mengirim pesan
-    inputRef.current?.focus()
+  // Initialize session on component mount
+  useEffect(() => {
+    const initializeSession = async () => {
+      if (connectionStatus !== "connected") return
 
-    // Simulasi respons AI
-    simulateResponse(inputValue)
+      try {
+        setIsLoading(true)
+        setError(null)
+        const session = await getOrCreateSession()
+        setCurrentSession(session)
+
+        // Load chat history if session has messages
+        if (session.session_id) {
+          const history = await getChatHistory(session.session_id, 20)
+          if (history.length > 0) {
+            const formattedHistory = history.reverse().map((msg) => ({
+              id: msg.message_id.toString(),
+              content: msg.content,
+              sender: msg.message_type === "user" ? ("user" as const) : ("ai" as const),
+              timestamp: new Date(msg.timestamp).toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+              }),
+            }))
+            setMessages((prev) => [...prev, ...formattedHistory])
+          }
+        }
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : "Gagal menginisialisasi sesi chat."
+        setError(errorMessage)
+        console.error("Session initialization error:", err)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    initializeSession()
+  }, [connectionStatus])
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter") {
-      handleSendMessage()
+  useEffect(() => {
+    scrollToBottom()
+  }, [messages])
+
+  const handleSendMessage = async () => {
+    if (!inputValue.trim() || !currentSession || isTyping || connectionStatus !== "connected") return
+
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      content: inputValue,
+      sender: "user",
+      timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+    }
+
+    setMessages((prev) => [...prev, userMessage])
+    setInputValue("")
+    setIsTyping(true)
+    setError(null)
+
+    try {
+      const response = await sendChatMessage({
+        message: inputValue,
+        session_id: currentSession.session_id,
+        user_id: currentSession.user_id || "anonymous",
+      })
+
+      const aiMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        content: response.response,
+        sender: "ai",
+        timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        context_used: response.context_used,
+        data_sources: response.data_sources,
+      }
+
+      setMessages((prev) => [...prev, aiMessage])
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Terjadi kesalahan saat memproses pesan."
+      setError(errorMessage)
+      console.error("Chat error:", err)
+    } finally {
+      setIsTyping(false)
     }
   }
 
@@ -180,280 +214,346 @@ export default function Chatbot({ isOpen, onToggle }: ChatbotProps) {
     inputRef.current?.focus()
   }
 
-  const formatTime = (timestamp: string) => {
-    const date = new Date(timestamp)
-    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault()
+      handleSendMessage()
+    }
+  }
+
+  const handleNewChat = async () => {
+    if (connectionStatus !== "connected") return
+
+    try {
+      setIsLoading(true)
+      setError(null)
+      const newSession = await getOrCreateSession()
+      setCurrentSession(newSession)
+      setMessages([
+        {
+          id: "1",
+          content:
+            "Halo! Saya GymTrack AI, asisten virtual yang siap membantu Anda menganalisis data gym. Apa yang ingin Anda ketahui hari ini?",
+          sender: "ai",
+          timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        },
+      ])
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Gagal membuat chat baru."
+      setError(errorMessage)
+      console.error("New chat error:", err)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleRetryConnection = async () => {
+    setConnectionStatus("checking")
+    setError(null)
+    const isConnected = await testConnection()
+    setConnectionStatus(isConnected ? "connected" : "disconnected")
+
+    if (!isConnected) {
+      setError(`Tidak dapat terhubung ke server di ${API_CONFIG.BASE_URL}. Pastikan backend sedang berjalan.`)
+    }
   }
 
   return (
     <div className="flex h-screen bg-gray-50">
-      {/* Main Sidebar */}
+      {/* Sidebar */}
       <AppSidebar />
-      
-      {/* Chat Sidebar */}
-      <div
-        className={cn(
-          "bg-white text-gray-800 border-r border-gray-200 transition-all duration-300 flex flex-col",
-          sidebarOpen ? "w-64" : "w-0",
-        )}
-      >
-        {sidebarOpen && (
-          <>
-            <div className="p-4 border-b border-gray-200">
-              <div className="flex items-center space-x-2">
-                <div className="p-2 rounded-full bg-emerald-500">
-                  <Brain className="h-5 w-5" />
-                </div>
-                <h2 className="font-bold text-lg">GymTrack AI</h2>
-              </div>
-              <Button
-                variant="outline"
-                className="w-full mt-4 bg-gray-100 border-gray-200 hover:bg-gray-200 text-gray-800"
-                onClick={() => {
-                  setMessages([
-                    {
-                      id: "1",
-                      content:
-                        "Halo! Saya GymTrack AI, asisten virtual yang siap membantu Anda menganalisis data gym. Apa yang ingin Anda ketahui hari ini?",
-                      sender: "ai",
-                      timestamp: new Date().toISOString(),
-                    },
-                  ])
-                }}
-              >
-                Chat Baru
-              </Button>
+
+      {/* Chat History Sidebar */}
+      <div className="w-80 bg-white border-r border-gray-200 flex flex-col ml-64">
+        {/* Header */}
+        <div className="p-4 border-b border-gray-200">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+              <Brain className="w-5 h-5 text-white" />
             </div>
+            <div>
+              <h2 className="font-bold text-gray-900">GYMTRACK AI</h2>
+              <p className="text-sm text-gray-500">Konsultasi dengan ChatBot GymTrack</p>
+            </div>
+          </div>
 
-            <Tabs defaultValue="history" className="flex-1 flex flex-col">
-              <TabsList className="bg-gray-100 p-1 mx-4 mt-4">
-                <TabsTrigger
-                  value="history"
-                  className="flex-1 data-[state=active]:bg-emerald-500 data-[state=active]:text-white text-gray-600"
-                >
-                  Riwayat
-                </TabsTrigger>
-                <TabsTrigger
-                  value="saved"
-                  className="flex-1 data-[state=active]:bg-emerald-500 data-[state=active]:text-white text-gray-600"
-                >
-                  Tersimpan
-                </TabsTrigger>
-              </TabsList>
+          <Button
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+            onClick={handleNewChat}
+            disabled={isLoading || connectionStatus !== "connected"}
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Chat Baru
+          </Button>
+        </div>
 
-              <TabsContent value="history" className="flex-1 p-4 space-y-3 overflow-auto">
-                {chatHistory.map((chat) => (
-                  <div
-                    key={chat.id}
-                    className="p-3 rounded-lg bg-white border border-gray-200 hover:bg-gray-100 cursor-pointer transition-colors group shadow-sm"
-                  >
-                    <div className="flex items-center justify-between">
-                      <h3 className="font-medium text-sm text-gray-800">{chat.title}</h3>
-                      <Clock className="h-3 w-3 text-gray-500" />
-                    </div>
-                    <p className="text-xs text-gray-600 mt-1 truncate">{chat.preview}</p>
-                    <div className="flex items-center justify-between mt-2">
-                      <span className="text-xs text-gray-500">{chat.date}</span>
-                      <div className="opacity-0 group-hover:opacity-100 transition-opacity flex space-x-1">
-                        <Button variant="ghost" size="icon" className="h-6 w-6">
-                          <Save className="h-3 w-3" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="h-6 w-6">
-                          <Trash className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </TabsContent>
+        {/* Connection Status */}
+        <div className="p-4 border-b border-gray-200">
+          <div className="flex items-center gap-2 text-sm">
+            {connectionStatus === "connected" && (
+              <>
+                <Wifi className="w-4 h-4 text-green-500" />
+                <span className="text-green-600">Terhubung</span>
+              </>
+            )}
+            {connectionStatus === "disconnected" && (
+              <>
+                <WifiOff className="w-4 h-4 text-red-500" />
+                <span className="text-red-600">Terputus</span>
+                <Button size="sm" variant="outline" onClick={handleRetryConnection} className="ml-auto bg-transparent">
+                  Coba Lagi
+                </Button>
+              </>
+            )}
+            {connectionStatus === "checking" && (
+              <>
+                <div className="w-4 h-4 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" />
+                <span className="text-gray-600">Memeriksa...</span>
+              </>
+            )}
+          </div>
+        </div>
 
-              <TabsContent value="saved" className="flex-1 p-4">
-                <div className="flex flex-col items-center justify-center h-full text-center text-gray-500">
-                  <Save className="h-10 w-10 mb-2 opacity-50" />
-                  <p className="text-sm">Belum ada chat tersimpan</p>
-                </div>
-              </TabsContent>
-            </Tabs>
-          </>
-        )}
+        {/* Tab Navigation */}
+        <div className="p-4 border-b border-gray-200">
+          <div className="flex gap-2">
+            <Button
+              variant={selectedTab === "Riwayat" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setSelectedTab("Riwayat")}
+              className="flex-1"
+            >
+              Riwayat
+            </Button>
+            <Button
+              variant={selectedTab === "Tersimpan" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setSelectedTab("Tersimpan")}
+              className="flex-1"
+            >
+              Tersimpan
+            </Button>
+          </div>
+        </div>
+
+        {/* Chat History */}
+        <ScrollArea className="flex-1 p-4">
+          {chatHistory.length === 0 ? (
+            <div className="text-center py-8">
+              <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center mx-auto mb-3">
+                <Brain className="w-8 h-8 text-gray-400" />
+              </div>
+              <p className="text-gray-500 text-sm">Belum ada chat tersimpan</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {chatHistory.map((chat) => (
+                <Card key={chat.id} className="cursor-pointer hover:bg-gray-50 transition-colors">
+                  <CardContent className="p-3">
+                    <h3 className="font-medium text-sm text-gray-900 mb-1">{chat.title}</h3>
+                    <p className="text-xs text-gray-500 mb-2 line-clamp-2">{chat.preview}</p>
+                    <p className="text-xs text-gray-400">{chat.date}</p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </ScrollArea>
       </div>
 
-      {/* Toggle sidebar button */}
-      <Button
-        variant="ghost"
-        size="icon"
-        className="absolute left-64 top-1/2 transform -translate-y-1/2 z-10 bg-white text-gray-800 border border-gray-200 border-l-0 rounded-none rounded-r-full h-12 shadow-sm"
-        onClick={() => setSidebarOpen(!sidebarOpen)}
-      >
-        {sidebarOpen ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-      </Button>
+      {/* Main Chat Area */}
+      <div className="flex-1 flex flex-col">
+        {/* Header */}
+        <div className="bg-white border-b border-gray-200 p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Button variant="ghost" size="icon">
+                <ArrowLeft className="w-5 h-5" />
+              </Button>
+              <h1 className="text-xl font-semibold">GymTrack AI</h1>
+              {currentSession && <span className="text-sm text-gray-500">Session: {currentSession.session_id}</span>}
+            </div>
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" size="icon">
+                <Star className="w-5 h-5" />
+              </Button>
+              <Button variant="ghost" size="icon">
+                <Trash className="w-5 h-5" />
+              </Button>
+            </div>
+          </div>
+        </div>
 
-      {/* Main chat area */}
-      <div className="flex-1 flex flex-col bg-gray-50">
-        {/* Chat messages */}
-        <ScrollArea className="flex-1 p-4">
-          <div className="max-w-3xl mx-auto space-y-6">
+        {/* Error Display */}
+        {error && (
+          <div className="p-4">
+            <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-center gap-2 text-red-700">
+              <AlertCircle className="h-4 w-4 flex-shrink-0" />
+              <span className="text-sm">{error}</span>
+              {connectionStatus === "disconnected" && (
+                <Button size="sm" variant="outline" onClick={handleRetryConnection} className="ml-auto bg-transparent">
+                  Coba Lagi
+                </Button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Messages */}
+        <ScrollArea className="flex-1 p-6">
+          <div className="max-w-4xl mx-auto space-y-6">
             {messages.map((message) => (
               <div
                 key={message.id}
-                className={cn("flex items-start gap-3", message.sender === "user" ? "justify-end" : "justify-start")}
+                className={cn("flex gap-3", message.sender === "user" ? "justify-end" : "justify-start")}
               >
                 {message.sender === "ai" && (
-                  <Avatar className="h-8 w-8 bg-emerald-600 text-white">
-                    <AvatarFallback>AI</AvatarFallback>
-                    <AvatarImage src="/placeholder.svg?height=32&width=32" />
+                  <Avatar className="w-8 h-8">
+                    <AvatarImage src="/api/placeholder/32/32" />
+                    <AvatarFallback className="bg-blue-600 text-white text-xs">AI</AvatarFallback>
                   </Avatar>
                 )}
 
                 <div
                   className={cn(
-                    "rounded-lg p-4 max-w-[80%] shadow-sm",
-                    message.sender === "user"
-                      ? "bg-emerald-500 text-white"
-                      : "bg-white border border-gray-200 text-gray-800",
+                    "max-w-[70%] rounded-2xl px-4 py-3",
+                    message.sender === "user" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-900",
                   )}
                 >
-                  <p className="text-sm">{message.content}</p>
-                  <div className={cn("text-xs mt-2", message.sender === "user" ? "text-emerald-100" : "text-gray-500")}>
-                    {formatTime(message.timestamp)}
-                  </div>
+                  <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                  {message.data_sources && message.data_sources.length > 0 && (
+                    <div className="mt-2 text-xs opacity-70">
+                      <span className="font-medium">Sumber data: </span>
+                      {message.data_sources.join(", ")}
+                    </div>
+                  )}
+                  <p
+                    className={cn(
+                      "text-xs mt-1 opacity-70",
+                      message.sender === "user" ? "text-blue-100" : "text-gray-500",
+                    )}
+                  >
+                    {message.timestamp}
+                  </p>
                 </div>
 
                 {message.sender === "user" && (
-                  <Avatar className="h-8 w-8 bg-gray-300">
-                    <AvatarFallback>U</AvatarFallback>
-                    <AvatarImage src="/placeholder.svg?height=32&width=32" />
+                  <Avatar className="w-8 h-8">
+                    <AvatarImage src="/api/placeholder/32/32" />
+                    <AvatarFallback className="bg-gray-600 text-white text-xs">U</AvatarFallback>
                   </Avatar>
                 )}
               </div>
             ))}
 
             {isTyping && (
-              <div className="flex items-start gap-3">
-                <Avatar className="h-8 w-8 bg-emerald-600 text-white">
-                  <AvatarFallback>AI</AvatarFallback>
-                  <AvatarImage src="/placeholder.svg?height=32&width=32" />
+              <div className="flex gap-3">
+                <Avatar className="w-8 h-8">
+                  <AvatarImage src="/api/placeholder/32/32" />
+                  <AvatarFallback className="bg-blue-600 text-white text-xs">AI</AvatarFallback>
                 </Avatar>
-
-                <div className="bg-white border border-gray-200 text-gray-800 rounded-lg p-4 shadow-sm">
-                  <div className="flex space-x-1">
+                <div className="bg-gray-100 rounded-2xl px-4 py-3">
+                  <div className="flex gap-1">
+                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
                     <div
                       className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
-                      style={{ animationDelay: "0ms" }}
+                      style={{ animationDelay: "0.1s" }}
                     ></div>
                     <div
                       className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
-                      style={{ animationDelay: "150ms" }}
-                    ></div>
-                    <div
-                      className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
-                      style={{ animationDelay: "300ms" }}
+                      style={{ animationDelay: "0.2s" }}
                     ></div>
                   </div>
                 </div>
               </div>
             )}
-
             <div ref={messagesEndRef} />
           </div>
         </ScrollArea>
 
-        {/* Prompt suggestions */}
-        {promptsOpen && (
-          <div className="bg-white border-t border-gray-200 p-4">
-            <div className="max-w-3xl mx-auto">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-medium text-gray-800">Saran Prompt</h3>
+        {/* Suggested Prompts */}
+        <div className="bg-white border-t border-gray-200 p-6">
+          <div className="max-w-4xl mx-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-medium text-gray-900">Saran Prompt</h3>
+              <Button variant="ghost" size="sm" className="text-blue-600">
+                Sembunyikan
+              </Button>
+            </div>
+
+            {/* Prompt Categories */}
+            <div className="flex gap-2 mb-4 flex-wrap">
+              {Object.keys(prompts).map((category) => (
                 <Button
-                  variant="ghost"
+                  key={category}
+                  variant={selectedTab === category ? "default" : "outline"}
                   size="sm"
-                  className="text-gray-500 hover:text-gray-800"
-                  onClick={() => setPromptsOpen(false)}
+                  onClick={() => setSelectedTab(category)}
+                  className={cn("rounded-full", selectedTab === category ? "bg-blue-600 text-white" : "")}
                 >
-                  Sembunyikan
+                  {category}
                 </Button>
+              ))}
+            </div>
+
+            {/* Prompt Suggestions */}
+            <div className="grid grid-cols-2 gap-3 mb-6">
+              {prompts[selectedTab as keyof typeof prompts]?.map((prompt, index) => (
+                <Button
+                  key={index}
+                  variant="outline"
+                  className="h-auto p-3 text-left justify-start text-sm text-gray-700 hover:bg-blue-50 hover:border-blue-200 bg-transparent"
+                  onClick={() => handlePromptClick(prompt)}
+                  disabled={isTyping || connectionStatus !== "connected"}
+                >
+                  {prompt}
+                </Button>
+              ))}
+            </div>
+
+            {/* Input Area */}
+            <div className="flex items-end gap-3">
+              <div className="flex-1 relative">
+                <Input
+                  ref={inputRef}
+                  value={inputValue}
+                  onChange={(e) => setInputValue(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  placeholder={
+                    connectionStatus === "connected"
+                      ? "Tanyakan tentang data gym Anda..."
+                      : "Menunggu koneksi ke server..."
+                  }
+                  className="pr-20 py-3 rounded-lg border-gray-300"
+                  disabled={isTyping || isLoading || connectionStatus !== "connected"}
+                />
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                  <Button variant="ghost" size="icon" className="w-8 h-8" disabled>
+                    <Mic className="w-4 h-4 text-gray-400" />
+                  </Button>
+                  <Button variant="ghost" size="icon" className="w-8 h-8" disabled>
+                    <Paperclip className="w-4 h-4 text-gray-400" />
+                  </Button>
+                </div>
               </div>
-
-              <Tabs defaultValue="Member Insights">
-                <TabsList className="bg-gray-100 mb-3">
-                  <TabsTrigger
-                    value="Member Insights"
-                    className="data-[state=active]:bg-emerald-500 data-[state=active]:text-white text-gray-600"
-                  >
-                    <Users className="h-4 w-4 mr-2" />
-                    Member
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="Fitness Trends"
-                    className="data-[state=active]:bg-emerald-500 data-[state=active]:text-white text-gray-600"
-                  >
-                    <Heart className="h-4 w-4 mr-2" />
-                    Fitness
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="Business Analytics"
-                    className="data-[state=active]:bg-emerald-500 data-[state=active]:text-white text-gray-600"
-                  >
-                    <BarChart className="h-4 w-4 mr-2" />
-                    Bisnis
-                  </TabsTrigger>
-                </TabsList>
-
-                {Object.entries(promptSuggestions).map(([category, prompts]) => (
-                  <TabsContent key={category} value={category} className="m-0">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                      {prompts.map((prompt, index) => (
-                        <Card
-                          key={index}
-                          className="bg-white border border-gray-200 hover:bg-gray-100 cursor-pointer transition-colors shadow-sm"
-                          onClick={() => handlePromptClick(prompt)}
-                        >
-                          <CardContent className="p-3">
-                            <p className="text-xs text-gray-700">{prompt}</p>
-                          </CardContent>
-                        </Card>
-                      ))}
-                    </div>
-                  </TabsContent>
-                ))}
-              </Tabs>
-            </div>
-          </div>
-        )}
-
-        {/* Input area */}
-        <div className="p-4 border-t border-gray-200 bg-white">
-          <div className="max-w-3xl mx-auto flex items-center gap-2">
-            {!promptsOpen && (
               <Button
-                variant="ghost"
-                size="icon"
-                className="text-gray-500 hover:text-gray-800"
-                onClick={() => setPromptsOpen(true)}
-              >
-                <MessageSquare className="h-5 w-5" />
-              </Button>
-            )}
-
-            <div className="relative flex-1">
-              <Input
-                ref={inputRef}
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="Tanyakan sesuatu tentang data gym Anda..."
-                className="bg-white border-gray-200 text-gray-800 placeholder:text-gray-400 pr-10"
-              />
-              <Button
-                variant="ghost"
-                size="icon"
-                className="absolute right-0 top-0 h-full text-gray-500 hover:text-emerald-500"
                 onClick={handleSendMessage}
-                disabled={inputValue.trim() === ""}
+                disabled={
+                  !inputValue.trim() || isTyping || isLoading || !currentSession || connectionStatus !== "connected"
+                }
+                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg"
               >
-                <Send className="h-4 w-4" />
+                {isTyping ? "Mengirim..." : "Send"}
+                <Send className="w-4 h-4 ml-2" />
               </Button>
             </div>
+
+            {/* Debug Info */}
+            {process.env.NODE_ENV === "development" && (
+              <div className="mt-4 p-2 bg-gray-100 rounded text-xs text-gray-600">
+                API URL: {API_CONFIG.BASE_URL} | Status: {connectionStatus}
+              </div>
+            )}
           </div>
         </div>
       </div>
