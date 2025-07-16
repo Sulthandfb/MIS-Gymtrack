@@ -9,6 +9,7 @@ import ProtectedRoute from "@/components/protected-route"; // Pastikan Protected
 import InventoryDashboard from './pages/InventoryDashboard';
 import FeedbackDashboard from './pages/FeedbackDashboard';
 import Chatbot from '@/pages/Chatbot'; // Import Chatbot component
+import Dashboard from './pages/Dashboard';
 
 // Komponen pembantu untuk meneruskan trainerId ke TrainerDetail
 const TrainerDetailWrapper = () => {
@@ -22,8 +23,8 @@ function App() {
       {/* Gunakan ProtectedRoute untuk melindungi rute yang memerlukan autentikasi */}
       <ProtectedRoute>
         <Routes>
-          <Route path="/" element={<MemberDashboard />} />
-          <Route path="/dashboard" element={<MemberDashboard />} /> {/* Sesuaikan jika ada rute dashboard terpisah */}
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/dashboard" element={<Dashboard />} /> {/* Sesuaikan jika ada rute dashboard terpisah */}
           <Route path="/member" element={<MemberDashboard />} />
           <Route path="/trainer" element={<TrainerDashboard />} />
           <Route path="/trainer/:trainerId" element={<TrainerDetailWrapper />} />
