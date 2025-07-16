@@ -8,6 +8,7 @@ import FinanceDashboard from "@/pages/FinanceDashboard"; // Pastikan ini diimpor
 import ProtectedRoute from "@/components/protected-route"; // Pastikan ProtectedRoute diimpor
 import InventoryDashboard from './pages/InventoryDashboard';
 import FeedbackDashboard from './pages/FeedbackDashboard';
+import Chatbot from '@/pages/Chatbot'; // Import Chatbot component
 
 // Komponen pembantu untuk meneruskan trainerId ke TrainerDetail
 const TrainerDetailWrapper = () => {
@@ -30,6 +31,7 @@ function App() {
           <Route path="/finance" element={<FinanceDashboard />} />
           <Route path="/inventory" element={<InventoryDashboard />} />
           <Route path="/feedback" element={<FeedbackDashboard />} />
+          <Route path="/ai" element={<Chatbot />} />
           {/* Tambahkan rute lain yang Anda miliki */}
           {/* Contoh: <Route path="/products" element={<ProductsPage />} /> */}
           {/* Pastikan semua rute yang ada di sidebar sudah didefinisikan di sini */}

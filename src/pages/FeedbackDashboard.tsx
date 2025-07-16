@@ -35,9 +35,9 @@ import {
 import { AppSidebar } from "@/components/Sidebar"
 // import { MemberListModal } from "@/components/member-list-modal"; // Tidak diperlukan di sini
 import { AIInsights } from "@/components/AIInsights" // Component untuk menampilkan AI insights
-import { AIRecommendations } from "@/components/AIRecommendations" // ✅ FIXED: Import AIRecommendations component
+import { AIRecommendations } from "@/components/AIRecommendations" //  FIXED: Import AIRecommendations component
 import type { AIRecommendation } from "@/components/AIRecommendations" // Jika belum diimport
-import { SixMonthTrend } from "@/components/SixMonthTrend" // ✅ NEW: Component untuk Six Month Trend
+import { SixMonthTrend } from "@/components/SixMonthTrend" //  NEW: Component untuk Six Month Trend
 import {
   fetchSentimentSummary,
   fetchSentimentDistribution,
@@ -533,7 +533,7 @@ export default function SentimentDashboard() {
               <div className="bg-white p-4 lg:p-6 rounded-xl border border-gray-200 shadow-sm">
                 <div className="flex justify-between items-center mb-4">
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-900">Tren Sentimen Harian</h3>
+                    <h3 className="text-lg font-semibold text-gray-900">Tren Sentimen</h3>
                     <p className="text-sm text-gray-500">Perubahan sentimen dari waktu ke waktu</p>
                   </div>
                   <Select value={timeRange} onValueChange={(value: string) => setTimeRange(value)}>

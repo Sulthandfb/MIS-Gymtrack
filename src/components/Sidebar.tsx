@@ -10,6 +10,7 @@ import {
   SparklesIcon,
   CogIcon as Cog6ToothIcon,
   ArrowRightIcon as ArrowRightOnRectangleIcon,
+  Brain, // Added Brain import
 } from "lucide-react"
 
 const menuItems = [
@@ -20,7 +21,7 @@ const menuItems = [
   { title: "Inventory", url: "/inventory", icon: ArchiveBoxIcon },
   { title: "Product & Supplement", url: "/products", icon: ShoppingCart },
   { title: "Finance", url: "/finance", icon: BanknotesIcon },
-  { title: "GymTrack AI", url: "/ai", icon: SparklesIcon },
+  { title: "GymTrack AI", url: "/ai", icon: SparklesIcon }, //AI Menu
 ]
 
 const generalItems = [

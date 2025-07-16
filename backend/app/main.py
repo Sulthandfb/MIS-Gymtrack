@@ -8,6 +8,7 @@ from app.database import engine, Base
 # from app.models import finance, member, product, trainer # Existing models
 from app.models import inventory # Existing inventory models
 from app.models import feedback # ✅ NEW: Import feedback models so tables are created
+from app.models import chatbot # ✅ NEW: Import feedback models so tables are created
 
 # Create database tables
 # Ensure all your Base models are imported here or via a single import that registers them
