@@ -15,6 +15,13 @@ from app.models.product import Product, Sale, SaleItem
 from app.crud.chatbot import create_chat_message, get_recent_messages
 from app.schemas.chatbot import ChatMessageCreate
 
+# Import fungsi-fungsi existing dari CRUD modules
+from app.crud import member as crud_member
+from app.crud import finance as crud_finance
+from app.crud import inventory as crud_inventory
+from app.crud import trainer as crud_trainer
+from app.crud import feedback as crud_feedback
+
 class ChatbotService:
     def __init__(self, db: Session):
         self.db = db
@@ -48,32 +55,21 @@ class ChatbotService:
         return detected_intent, keywords
     
     def get_member_data(self, filters: Dict[str, Any] = None) -> Dict[str, Any]:
-        """Get member statistics and data"""
-        query = self.db.query(Member)
-        
-        if filters:
-            if 'status' in filters:
-                query = query.filter(Member.status == filters['status'])
-            if 'membership_type' in filters:
-                query = query.filter(Member.membership_type == filters['membership_type'])
-        
-        total_members = query.count()
-        active_members = query.filter(Member.status == 'active').count()
+        """Get member statistics and data using existing CRUD functions"""
+        # Gunakan fungsi yang sudah ada di crud/member.py
+        member_stats = crud_member.get_member_stats(self.db)
+        member_segments = crud_member.get_member_segments(self.db)
         
         # Recent members
-        recent_members = query.order_by(desc(Member.join_date)).limit(5).all()
-        
-        # Membership distribution
-        membership_dist = self.db.query(
-            Member.membership_type,
-            func.count(Member.member_id).label('count')
-        ).group_by(Member.membership_type).all()
+        recent_members = self.db.query(Member).order_by(desc(Member.join_date)).limit(5).all()
         
         return {
-            'total_members': total_members,
-            'active_members': active_members,
+            'total_members': member_stats['total'],
+            'active_members': member_stats['active'], 
+            'new_members_this_month': member_stats['new_members'],
+            'retention_rate': member_stats['retention'],  # Ini yang missing sebelumnya!
             'recent_members': [{'name': m.name, 'join_date': str(m.join_date)} for m in recent_members],
-            'membership_distribution': [{'type': m.membership_type, 'count': m.count} for m in membership_dist]
+            'membership_distribution': member_segments
         }
     
     def get_trainer_data(self, filters: Dict[str, Any] = None) -> Dict[str, Any]:
@@ -104,12 +100,12 @@ class ChatbotService:
         }
     
     def get_inventory_data(self, filters: Dict[str, Any] = None) -> Dict[str, Any]:
-        """Get inventory statistics and data"""
-        query = self.db.query(Equipment)
+        """Get inventory statistics and data using existing CRUD functions"""
+        # Gunakan fungsi yang sudah ada di crud/inventory.py
+        inventory_summary = crud_inventory.get_inventory_summary(self.db)
         
-        total_equipment = query.count()
-        working_equipment = query.filter(Equipment.status == 'Baik').count()
-        needs_maintenance = query.filter(Equipment.next_maintenance <= date.today()).count()
+        # Recent equipment
+        recent_equipment = self.db.query(Equipment).order_by(desc(Equipment.purchase_date)).limit(5).all()
         
         # Equipment by category
         category_dist = self.db.query(
@@ -117,50 +113,40 @@ class ChatbotService:
             func.count(Equipment.equipment_id).label('count')
         ).join(Equipment).group_by(EquipmentCategory.category_name).all()
         
-        # Recent equipment
-        recent_equipment = query.order_by(desc(Equipment.purchase_date)).limit(5).all()
-        
         return {
-            'total_equipment': total_equipment,
-            'working_equipment': working_equipment,
-            'needs_maintenance': needs_maintenance,
+            'total_equipment': inventory_summary['total_equipment'],
+            'working_equipment': inventory_summary['total_active_equipment'],
+            'broken_equipment': inventory_summary['total_broken_equipment'],
+            'in_maintenance': inventory_summary['total_in_maintenance_equipment'],
+            'needs_replacement': inventory_summary['total_replacement_needed_equipment'],
+            'backup_stock': inventory_summary['total_backup_stock'],
+            'total_equipment_value': inventory_summary['total_equipment_value'],  # Ini yang missing sebelumnya!
             'category_distribution': [{'category': c.category_name, 'count': c.count} for c in category_dist],
             'recent_equipment': [{'name': e.name, 'status': e.status, 'purchase_date': str(e.purchase_date)} for e in recent_equipment]
         }
     
     def get_finance_data(self, filters: Dict[str, Any] = None) -> Dict[str, Any]:
-        """Get finance statistics and data"""
-        today = date.today()
-        current_month = today.month
-        current_year = today.year
+        """Get finance statistics and data using existing CRUD functions"""
+        current_year = date.today().year
         
-        # Income this month
-        monthly_income = self.db.query(func.sum(IncomeTransaction.amount)).filter(
-            and_(
-                func.extract('month', IncomeTransaction.transaction_date) == current_month,
-                func.extract('year', IncomeTransaction.transaction_date) == current_year
-            )
-        ).scalar() or 0
+        # Gunakan fungsi yang sudah ada di crud/finance.py
+        financial_summary = crud_finance.get_financial_summary(self.db, current_year)
+        income_breakdown = crud_finance.get_income_breakdown(self.db, current_year)
+        expense_breakdown = crud_finance.get_expense_breakdown(self.db, current_year)
         
-        # Expenses this month
-        monthly_expenses = self.db.query(func.sum(ExpenseTransaction.amount)).filter(
-            and_(
-                func.extract('month', ExpenseTransaction.transaction_date) == current_month,
-                func.extract('year', ExpenseTransaction.transaction_date) == current_year
-            )
-        ).scalar() or 0
-        
-        # Income by type
-        income_by_type = self.db.query(
-            IncomeTransaction.income_type,
-            func.sum(IncomeTransaction.amount).label('total')
-        ).group_by(IncomeTransaction.income_type).all()
+        # Hitung profit margin yang akurat
+        profit_margin = financial_summary.get('profit_margin', 0)
+        net_profit = financial_summary['total_income'] - financial_summary['total_expenses']
         
         return {
-            'monthly_income': float(monthly_income),
-            'monthly_expenses': float(monthly_expenses),
-            'net_profit': float(monthly_income - monthly_expenses),
-            'income_by_type': [{'type': i.income_type, 'total': float(i.total)} for i in income_by_type]
+            'monthly_income': financial_summary['total_income'],
+            'monthly_expenses': financial_summary['total_expenses'],
+            'net_profit': net_profit,
+            'profit_margin': profit_margin,  # Ini yang missing sebelumnya!
+            'profit_margin_trend': financial_summary.get('profit_margin_trend', 0),
+            'income_breakdown': income_breakdown,
+            'expense_breakdown': expense_breakdown,
+            'income_by_type': [{'type': item['name'], 'total': item['amount']} for item in income_breakdown]
         }
     
     def get_feedback_data(self, filters: Dict[str, Any] = None) -> Dict[str, Any]:
@@ -295,14 +281,21 @@ Riwayat percakapan terbaru:
 Data kontekstual yang tersedia:
 {json.dumps(context_data, indent=2, ensure_ascii=False)}
 
+PENTING: Gunakan data yang tersedia untuk memberikan jawaban yang AKURAT. Contoh:
+- Jika ditanya retensi rate, gunakan nilai dari 'retention_rate' di data member
+- Jika ditanya margin profit, gunakan nilai dari 'profit_margin' di data finance  
+- Jika ditanya total nilai aset, gunakan 'total_equipment_value' di data inventory
+- Selalu berikan angka yang tepat dari data, bukan estimasi
+
 Berikan respons yang:
 1. Ramah dan profesional
-2. Berdasarkan data yang tersedia
-3. Memberikan insight yang berguna
+2. Berdasarkan data AKTUAL yang tersedia (gunakan angka yang tepat)
+3. Memberikan insight yang berguna dan akurat
 4. Menawarkan informasi tambahan jika relevan
 5. Gunakan bahasa Indonesia yang natural
+6. Jika data tidak tersedia, jelaskan dengan jelas bahwa informasi tidak tersedia
 
-Jika tidak ada data yang relevan, berikan respons yang menjelaskan hal tersebut dengan ramah.
+Jangan memberikan informasi yang tidak ada di data atau membuat estimasi sendiri.
 """
         
         return base_prompt

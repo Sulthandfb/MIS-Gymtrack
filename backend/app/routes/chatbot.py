@@ -9,24 +9,36 @@ from app.crud.chatbot import get_or_create_session, get_chat_history
 
 router = APIRouter()
 
+@router.get("/chat/test")
+async def test_chatbot():
+    """Test endpoint to check if chatbot service is working"""
+    return {"status": "ok", "message": "Chatbot service is running"}
+
 @router.post("/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest, db: Session = Depends(get_db)):
     """
     Process chat message and return AI response
     """
     try:
+        print(f"📨 Received chat request: {request.message[:50]}...")
+        
         # Get or create session
         session = get_or_create_session(db, request.user_id)
+        print(f"🔗 Using session: {session.session_id}")
         
         # Initialize chatbot service
         chatbot_service = ChatbotService(db)
         
         # Process message
         result = await chatbot_service.process_message(request.message, session.session_id)
+        print(f"✅ Generated response: {result['response'][:50]}...")
         
         return ChatResponse(**result)
     
     except Exception as e:
+        print(f"❌ Error in chat endpoint: {e}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Error processing chat: {str(e)}")
 
 @router.get("/chat/history/{session_id}", response_model=List[ChatMessage])
