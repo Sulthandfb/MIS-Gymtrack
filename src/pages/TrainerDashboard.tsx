@@ -1,20 +1,15 @@
 "use client"
-
-import type React from "react"
-
 import { useState, useEffect } from "react"
 import {
-  TrendingUp,
   Calendar,
   AlertTriangle,
-  Lightbulb,
-  ChevronDown,
   Search,
   FileText,
   Download,
   UserPlus,
   Heart,
   Sparkles,
+  AlertCircle,
 } from "lucide-react"
 import {
   BarChart,
@@ -36,7 +31,10 @@ import { StatCard } from "@/components/StatCard"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { AIInsights } from "@/components/AIInsights"
 import { fetchTrainerDashboardData } from "@/services/api"
 import type { TrainerDashboardData } from "@/types/trainer"
 
@@ -74,37 +72,27 @@ export default function TrainerDashboard() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case "excellent":
-        return "bg-emerald-100 text-emerald-800"
+        return "bg-emerald-100 text-emerald-800 border-emerald-200"
       case "good":
-        return "bg-blue-100 text-blue-800"
+        return "bg-blue-100 text-blue-800 border-blue-200"
       case "warning":
-        return "bg-orange-100 text-orange-800"
+        return "bg-orange-100 text-orange-800 border-orange-200"
       case "poor":
-        return "bg-red-100 text-red-800"
+        return "bg-red-100 text-red-800 border-red-200"
       default:
-        return "bg-gray-100 text-gray-800"
+        return "bg-gray-100 text-gray-800 border-gray-200"
     }
-  }
-
-  const getLucideIcon = (iconName: string) => {
-    const icons: { [key: string]: React.ElementType } = {
-      TrendingUp: TrendingUp,
-      AlertTriangle: AlertTriangle,
-      Lightbulb: Lightbulb,
-      AcademicCapIcon: Calendar, // Closest match for "Jumlah Kelas Mingguan"
-      FireIcon: UserPlus, // For "Trainer Aktif"
-      HeartIcon: Heart, // For "Kelas dengan Engagement Tinggi"
-      SparklesIcon: Sparkles, // For "Rata-rata Kepuasan Kelas"
-    }
-    return icons[iconName] || Lightbulb
   }
 
   if (loading) {
     return (
-      <div className="flex h-screen bg-gray-50">
+      <div className="flex h-screen bg-[#F7F8FA] font-sans text-gray-800 overflow-hidden">
         <AppSidebar />
-        <main className="flex-1 flex items-center justify-center lg:ml-64">
-          <p className="text-gray-600">Memuat data dashboard trainer...</p>
+        <main className="ml-0 lg:ml-64 flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading trainer data...</p>
+          </div>
         </main>
       </div>
     )
@@ -112,10 +100,14 @@ export default function TrainerDashboard() {
 
   if (error) {
     return (
-      <div className="flex h-screen bg-gray-50">
+      <div className="flex h-screen bg-[#F7F8FA] font-sans text-gray-800 overflow-hidden">
         <AppSidebar />
-        <main className="flex-1 flex items-center justify-center lg:ml-64">
-          <p className="text-red-600">{error}</p>
+        <main className="ml-0 lg:ml-64 flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+            <p className="text-red-600 mb-4">{error}</p>
+            <Button onClick={() => window.location.reload()}>Try Again</Button>
+          </div>
         </main>
       </div>
     )
@@ -123,9 +115,9 @@ export default function TrainerDashboard() {
 
   if (!dashboardData) {
     return (
-      <div className="flex h-screen bg-gray-50">
+      <div className="flex h-screen bg-[#F7F8FA] font-sans text-gray-800 overflow-hidden">
         <AppSidebar />
-        <main className="flex-1 flex items-center justify-center lg:ml-64">
+        <main className="ml-0 lg:ml-64 flex-1 flex items-center justify-center">
           <p className="text-gray-600">Tidak ada data dashboard yang tersedia.</p>
         </main>
       </div>
@@ -151,114 +143,100 @@ export default function TrainerDashboard() {
   const CHART_COLORS = ["#3b82f6", "#22c55e", "#ef4444", "#f59e0b", "#8b5cf6"]
 
   return (
-    <div className="flex h-screen bg-[#F7F8FA] font-sans text-gray-800">
+    <div className="flex h-screen bg-[#F7F8FA] font-sans text-gray-800 overflow-hidden">
       <AppSidebar />
-      <main className="flex-1 flex flex-col lg:ml-64">
+      <main className="ml-0 lg:ml-64 flex-1 flex flex-col min-h-0">
         {/* Header */}
-        <header className="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between sticky top-0 z-10">
+        <header className="bg-white border-b border-gray-200 px-4 lg:px-6 py-4 flex items-center justify-between sticky top-0 z-10">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">TRAINER</h1>
-            <p className="text-gray-600 text-sm">Kelola dan pantau kinerja trainer</p>
+            <h1 className="text-xl lg:text-2xl font-bold text-gray-900">TRAINER</h1>
+            <p className="text-gray-600 text-xs lg:text-sm">
+              Kelola dan pantau kinerja trainer dengan insight AI untuk optimasi performa.
+            </p>
           </div>
-          <div className="flex items-center gap-4">
-            <Button className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg flex items-center gap-2 shadow-sm">
-              <FileText className="w-4 h-4" /> Tambah Laporan
+          <div className="flex gap-2">
+            <Button className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-3 lg:px-4 rounded-lg flex items-center gap-2 shadow-sm text-xs lg:text-sm">
+              <FileText className="w-4 h-4" />
+              <span className="hidden sm:inline">Generate Report</span>
             </Button>
             <Button
               variant="outline"
-              className="border border-gray-300 text-gray-700 font-semibold py-2 px-4 rounded-lg flex items-center gap-2 hover:bg-gray-50 bg-transparent"
+              className="border border-gray-300 text-gray-700 font-semibold py-2 px-3 lg:px-4 rounded-lg flex items-center gap-2 hover:bg-gray-50 text-xs lg:text-sm bg-white"
             >
-              <Download className="w-4 h-4" /> Ekspor Data
+              <Download className="w-4 h-4" />
+              <span className="hidden sm:inline">Export Data</span>
             </Button>
-            <span className="text-sm font-medium">Indonesia</span>
-            <div className="flex items-center gap-3">
-              <img
-                src="/placeholder.svg?height=36&width=36"
-                className="h-9 w-9 rounded-full object-cover"
-                alt="MarkLee"
-              />
-            </div>
           </div>
         </header>
         {/* Page Content */}
-        <div className="p-6 flex-1 overflow-y-auto">
+        <div className="p-4 lg:p-6 flex-1 overflow-y-auto min-h-0">
           {/* Tabs and Filters */}
           <div className="mb-6">
-            <div className="border-b border-gray-200">
-              <div className="flex gap-2">
-                <button className="px-4 py-2 text-sm font-semibold border-b-2 border-blue-600 text-blue-600">
-                  Insights
-                </button>
-                <button className="px-4 py-2 text-sm font-semibold text-gray-400 cursor-not-allowed">
-                  Daftar Trainer
-                </button>
-              </div>
+            <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-1 inline-flex mb-4">
+              <button className="px-4 py-2 text-sm font-semibold rounded-md bg-blue-600 text-white shadow-sm">
+                Insights
+              </button>
+              <button className="px-4 py-2 text-sm font-semibold text-gray-400 cursor-not-allowed">
+                Daftar Trainer
+              </button>
             </div>
-            <div className="flex items-center gap-6 text-sm mt-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 text-sm">
               <div className="flex items-center gap-2">
-                <label htmlFor="periode" className="text-gray-600">
+                <label htmlFor="periode" className="text-gray-600 whitespace-nowrap">
                   Periode:
                 </label>
-                <div className="relative">
-                  <select
-                    id="periode"
-                    value={periode}
-                    onChange={(e) => setPeriode(e.target.value)}
-                    className="appearance-none bg-white border border-gray-300 px-3 py-1.5 rounded-md hover:bg-gray-50 pr-8"
-                  >
-                    <option>Minggu Ini</option>
-                    <option>Bulan Ini</option>
-                    <option>3 Bulan Terakhir</option>
-                    <option>Tahun Ini</option>
-                  </select>
-                  <ChevronDown className="w-4 h-4 text-gray-500 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
-                </div>
+                <Select value={periode} onValueChange={setPeriode}>
+                  <SelectTrigger className="w-40">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Minggu Ini">Minggu Ini</SelectItem>
+                    <SelectItem value="Bulan Ini">Bulan Ini</SelectItem>
+                    <SelectItem value="3 Bulan Terakhir">3 Bulan Terakhir</SelectItem>
+                    <SelectItem value="Tahun Ini">Tahun Ini</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="flex items-center gap-2">
-                <label htmlFor="trainer" className="text-gray-600">
+                <label htmlFor="trainer" className="text-gray-600 whitespace-nowrap">
                   Trainer:
                 </label>
-                <div className="relative">
-                  <select
-                    id="trainer"
-                    value={trainer}
-                    onChange={(e) => setTrainer(e.target.value)}
-                    className="appearance-none bg-white border border-gray-300 px-3 py-1.5 rounded-md hover:bg-gray-50 pr-8"
-                  >
-                    <option>Semua Trainer</option>
-                    <option>Senior Trainer</option>
-                    <option>Junior Trainer</option>
-                  </select>
-                  <ChevronDown className="w-4 h-4 text-gray-500 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
-                </div>
+                <Select value={trainer} onValueChange={setTrainer}>
+                  <SelectTrigger className="w-40">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Semua Trainer">Semua Trainer</SelectItem>
+                    <SelectItem value="Senior Trainer">Senior Trainer</SelectItem>
+                    <SelectItem value="Junior Trainer">Junior Trainer</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="flex items-center gap-2">
-                <label htmlFor="jenis-kelas" className="text-gray-600">
+                <label htmlFor="jenis-kelas" className="text-gray-600 whitespace-nowrap">
                   Jenis Kelas:
                 </label>
-                <div className="relative">
-                  <select
-                    id="jenis-kelas"
-                    value={jenisKelas}
-                    onChange={(e) => setJenisKelas(e.target.value)}
-                    className="appearance-none bg-white border border-gray-300 px-3 py-1.5 rounded-md hover:bg-gray-50 pr-8 ring-2 ring-blue-300"
-                  >
-                    <option>Semua Kelas</option>
-                    <option>Strength</option>
-                    <option>Cardio</option>
-                    <option>Yoga</option>
-                    <option>HIIT</option>
-                    <option>Pilates</option>
-                  </select>
-                  <ChevronDown className="w-4 h-4 text-gray-500 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
-                </div>
+                <Select value={jenisKelas} onValueChange={setJenisKelas}>
+                  <SelectTrigger className="w-40">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Semua Kelas">Semua Kelas</SelectItem>
+                    <SelectItem value="Strength">Strength</SelectItem>
+                    <SelectItem value="Cardio">Cardio</SelectItem>
+                    <SelectItem value="Yoga">Yoga</SelectItem>
+                    <SelectItem value="HIIT">HIIT</SelectItem>
+                    <SelectItem value="Pilates">Pilates</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           </div>
           {/* Content Area */}
-          <div className="grid grid-cols-12 gap-6">
-            <div className="col-span-12 lg:col-span-8 space-y-6">
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
+          <div className="grid grid-cols-12 gap-4 lg:gap-6">
+            <div className="col-span-12 xl:col-span-8 space-y-4 lg:space-y-6">
+              {/* Stats Cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 lg:gap-6">
                 <StatCard
                   title="Jumlah Kelas Mingguan"
                   value={stats.weekly_classes}
@@ -288,19 +266,24 @@ export default function TrainerDashboard() {
                   color="purple"
                 />
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Charts Row 1 */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
                 <Card className="shadow-sm">
-                  <CardHeader>
-                    <CardTitle className="font-bold text-gray-800">Jumlah Peserta per Kelas Offline</CardTitle>
-                    <p className="text-sm text-gray-500 mb-4">Perbandingan jumlah kelas yang dijalankan per trainer</p>
+                  <CardHeader className="p-4 lg:p-6 pb-0">
+                    <CardTitle className="text-base lg:text-lg font-semibold text-gray-900">
+                      Jumlah Peserta per Kelas Offline
+                    </CardTitle>
+                    <p className="text-xs lg:text-sm text-gray-500">
+                      Perbandingan jumlah kelas yang dijalankan per trainer
+                    </p>
                   </CardHeader>
-                  <CardContent>
-                    <div className="h-80">
+                  <CardContent className="p-4 lg:p-6 pt-4">
+                    <div className="h-64 lg:h-80">
                       <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={classParticipantsData}>
                           <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                          <XAxis dataKey="trainer" stroke="#666" />
-                          <YAxis stroke="#666" domain={[0, 32]} ticks={[0, 8, 16, 24, 32]} />
+                          <XAxis dataKey="trainer" stroke="#666" fontSize={12} />
+                          <YAxis stroke="#666" domain={[0, 32]} ticks={[0, 8, 16, 24, 32]} fontSize={12} />
                           <Tooltip
                             contentStyle={{
                               backgroundColor: "white",
@@ -315,8 +298,8 @@ export default function TrainerDashboard() {
                         </BarChart>
                       </ResponsiveContainer>
                     </div>
-                    <div className="bg-gray-100/70 p-3 rounded-md mt-4">
-                      <p className="text-xs text-gray-600">
+                    <div className="bg-blue-50 p-3 rounded-lg mt-4">
+                      <p className="text-xs text-blue-700">
                         <strong>Insight:</strong> Kelas Yoga oleh Scarlett J. memiliki tingkat kehadiran rendah
                         (rata-rata 5 peserta per kelas jadwal atau metode pengajaran.
                       </p>
@@ -324,12 +307,14 @@ export default function TrainerDashboard() {
                   </CardContent>
                 </Card>
                 <Card className="shadow-sm">
-                  <CardHeader>
-                    <CardTitle className="font-bold text-gray-800">Tipe Kelas yang Sering Diambil</CardTitle>
-                    <p className="text-sm text-gray-500 mb-4">Distribusi jenis kelas berdasarkan popularitas</p>
+                  <CardHeader className="p-4 lg:p-6 pb-0">
+                    <CardTitle className="text-base lg:text-lg font-semibold text-gray-900">
+                      Tipe Kelas yang Sering Diambil
+                    </CardTitle>
+                    <p className="text-xs lg:text-sm text-gray-500">Distribusi jenis kelas berdasarkan popularitas</p>
                   </CardHeader>
-                  <CardContent>
-                    <div className="h-64 flex items-center justify-center">
+                  <CardContent className="p-4 lg:p-6 pt-4">
+                    <div className="h-48 lg:h-56 flex items-center justify-center">
                       <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
                           <Pie
@@ -339,7 +324,7 @@ export default function TrainerDashboard() {
                             innerRadius={60}
                             outerRadius={100}
                             dataKey="value"
-                            isAnimationActive={false} // Disable animation for static rendering
+                            isAnimationActive={false}
                           >
                             {classTypeData.map((entry, index) => (
                               <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
@@ -349,21 +334,35 @@ export default function TrainerDashboard() {
                         </PieChart>
                       </ResponsiveContainer>
                     </div>
+                    <div className="flex flex-wrap justify-center gap-2 lg:gap-4 text-xs mt-4">
+                      {classTypeData.map((item, index) => (
+                        <div key={index} className="flex items-center gap-1.5">
+                          <div
+                            className="w-2.5 h-2.5 rounded-sm"
+                            style={{ backgroundColor: CHART_COLORS[index % CHART_COLORS.length] }}
+                          ></div>
+                          <span>{item.name}</span>
+                        </div>
+                      ))}
+                    </div>
                   </CardContent>
                 </Card>
               </div>
+              {/* Satisfaction Trend Chart */}
               <Card className="shadow-sm">
-                <CardHeader>
-                  <CardTitle className="font-bold text-gray-800">Trend Kepuasan User per Trainer</CardTitle>
-                  <p className="text-sm text-gray-500 mb-4">Rating kepuasan member (skala 1-5)</p>
+                <CardHeader className="p-4 lg:p-6 pb-0">
+                  <CardTitle className="text-base lg:text-lg font-semibold text-gray-900">
+                    Trend Kepuasan User per Trainer
+                  </CardTitle>
+                  <p className="text-xs lg:text-sm text-gray-500">Rating kepuasan member (skala 1-5)</p>
                 </CardHeader>
-                <CardContent>
-                  <div className="h-64">
+                <CardContent className="p-4 lg:p-6 pt-4">
+                  <div className="h-64 lg:h-80">
                     <ResponsiveContainer width="100%" height="100%">
                       <LineChart data={satisfactionTrendData}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                        <XAxis dataKey="week" stroke="#666" />
-                        <YAxis domain={[3.5, 5.0]} stroke="#666" /> {/* Adjusted domain */}
+                        <XAxis dataKey="week" stroke="#666" fontSize={12} />
+                        <YAxis domain={[3.5, 5.0]} stroke="#666" fontSize={12} />
                         <ReferenceLine
                           y={4.5}
                           stroke="#ef4444"
@@ -387,7 +386,7 @@ export default function TrainerDashboard() {
                               stroke={CHART_COLORS[index % CHART_COLORS.length]}
                               strokeWidth={2}
                               name={trainerNameKey.charAt(0).toUpperCase() + trainerNameKey.slice(1)}
-                              dot={{ r: 4, fill: CHART_COLORS[index % CHART_COLORS.length] }} // Add dots
+                              dot={{ r: 4, fill: CHART_COLORS[index % CHART_COLORS.length] }}
                             />
                           ))}
                       </LineChart>
@@ -395,73 +394,85 @@ export default function TrainerDashboard() {
                   </div>
                 </CardContent>
               </Card>
+              {/* Trainer Performance Table */}
               <Card className="shadow-sm">
-                <CardHeader>
-                  <CardTitle className="font-bold text-gray-800">Tabel Kinerja Trainer</CardTitle>
-                  <p className="text-sm text-gray-500">Perbandingan Kinerja Semua Trainer Aktif</p>
+                <CardHeader className="p-4 lg:p-6 pb-0">
+                  <CardTitle className="text-base lg:text-lg font-semibold text-gray-900">
+                    Tabel Kinerja Trainer
+                  </CardTitle>
+                  <p className="text-xs lg:text-sm text-gray-500">Perbandingan Kinerja Semua Trainer Aktif</p>
                   <div className="relative mt-2">
                     <Search className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                    <input
+                    <Input
                       type="text"
                       placeholder="Filter by name"
-                      className="pl-10 pr-4 py-2 w-64 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="pl-10 pr-4 py-2 w-64"
                       value={filterName}
                       onChange={(e) => setFilterName(e.target.value)}
                     />
                   </div>
                 </CardHeader>
-                <CardContent>
-                  <Table>
-                    <TableHeader className="bg-blue-600 text-white">
-                      <TableRow>
-                        <TableHead className="p-3 font-semibold text-white">Nama</TableHead>
-                        <TableHead className="p-3 font-semibold text-white">Spesialisasi</TableHead>
-                        <TableHead className="p-3 font-semibold text-white">Kelas</TableHead>
-                        <TableHead className="p-3 font-semibold text-white">Feedback</TableHead>
-                        <TableHead className="p-3 font-semibold text-white">Retensi</TableHead>
-                        <TableHead className="p-3 font-semibold text-white">Member Aktif</TableHead>
-                        <TableHead className="p-3 font-semibold text-white">Status</TableHead>
-                        <TableHead className="p-3 font-semibold text-white">Action</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredTrainerPerformanceData.map((trainer) => (
-                        <TableRow key={trainer.id} className="border-b hover:bg-gray-50">
-                          <TableCell className="p-3 font-medium text-gray-900">{trainer.name}</TableCell>
-                          <TableCell className="p-3">{trainer.specialization}</TableCell>
-                          <TableCell className="p-3">{trainer.classes}</TableCell>
-                          <TableCell className="p-3">{trainer.feedback}/5</TableCell>
-                          <TableCell className="p-3">
-                            <Badge className={getStatusColor(trainer.status)}>{trainer.retention}%</Badge>
-                          </TableCell>
-                          <TableCell className="p-3">{trainer.activeMembers}</TableCell>
-                          <TableCell className="p-3">
-                            <Badge className={getStatusColor(trainer.status)}>{trainer.status}</Badge>
-                          </TableCell>
-                          <TableCell className="p-3">
-                            <Button variant="outline" size="sm" onClick={() => handleViewTrainerDetail(trainer.id)}>
-                              Detail
-                            </Button>
-                          </TableCell>
+                <CardContent className="p-4 lg:p-6 pt-4">
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-gray-50">
+                          <TableHead className="font-semibold text-gray-900">Nama</TableHead>
+                          <TableHead className="font-semibold text-gray-900">Spesialisasi</TableHead>
+                          <TableHead className="font-semibold text-gray-900">Kelas</TableHead>
+                          <TableHead className="font-semibold text-gray-900">Feedback</TableHead>
+                          <TableHead className="font-semibold text-gray-900">Retensi</TableHead>
+                          <TableHead className="font-semibold text-gray-900">Member Aktif</TableHead>
+                          <TableHead className="font-semibold text-gray-900">Status</TableHead>
+                          <TableHead className="font-semibold text-gray-900">Action</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredTrainerPerformanceData.map((trainer) => (
+                          <TableRow key={trainer.id} className="hover:bg-gray-50">
+                            <TableCell className="font-medium text-gray-900">{trainer.name}</TableCell>
+                            <TableCell className="text-sm">{trainer.specialization}</TableCell>
+                            <TableCell className="text-sm">{trainer.classes}</TableCell>
+                            <TableCell className="text-sm">{trainer.feedback}/5</TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className={getStatusColor(trainer.status)}>
+                                {trainer.retention}%
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-sm">{trainer.activeMembers}</TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className={getStatusColor(trainer.status)}>
+                                {trainer.status}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <Button variant="outline" size="sm" onClick={() => handleViewTrainerDetail(trainer.id)}>
+                                Detail
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
                 </CardContent>
               </Card>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <Card className="shadow-sm border-2 border-yellow-400">
-                  <CardHeader>
-                    <CardTitle className="font-bold text-gray-800">Analitik Konversi</CardTitle>
-                    <p className="text-sm text-gray-500 mb-4">Rating kepuasan member (skala 1-5)</p>
+              {/* Bottom Charts */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
+                <Card className="shadow-sm">
+                  <CardHeader className="p-4 lg:p-6 pb-0">
+                    <CardTitle className="text-base lg:text-lg font-semibold text-gray-900">
+                      Analitik Konversi
+                    </CardTitle>
+                    <p className="text-xs lg:text-sm text-gray-500">Rating kepuasan member (skala 1-5)</p>
                   </CardHeader>
-                  <CardContent>
-                    <div className="h-64">
+                  <CardContent className="p-4 lg:p-6 pt-4">
+                    <div className="h-48 lg:h-64">
                       <ResponsiveContainer width="100%" height="100%">
                         <LineChart data={satisfactionTrendData}>
                           <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                          <XAxis dataKey="week" stroke="#666" />
-                          <YAxis domain={[3.5, 5.0]} stroke="#666" />
+                          <XAxis dataKey="week" stroke="#666" fontSize={12} />
+                          <YAxis domain={[3.5, 5.0]} stroke="#666" fontSize={12} />
                           <Tooltip
                             contentStyle={{
                               backgroundColor: "white",
@@ -488,17 +499,19 @@ export default function TrainerDashboard() {
                   </CardContent>
                 </Card>
                 <Card className="shadow-sm">
-                  <CardHeader>
-                    <CardTitle className="font-bold text-gray-800">Evaluasi Per Kursus</CardTitle>
-                    <p className="text-sm text-gray-500 mb-4">Perbandingan efektivitas kursus offline vs AI</p>
+                  <CardHeader className="p-4 lg:p-6 pb-0">
+                    <CardTitle className="text-base lg:text-lg font-semibold text-gray-900">
+                      Evaluasi Per Kursus
+                    </CardTitle>
+                    <p className="text-xs lg:text-sm text-gray-500">Perbandingan efektivitas kursus offline vs AI</p>
                   </CardHeader>
-                  <CardContent>
-                    <div className="h-64">
+                  <CardContent className="p-4 lg:p-6 pt-4">
+                    <div className="h-48 lg:h-64">
                       <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={courseComparisonData} layout="vertical">
                           <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis type="number" domain={[0, 100]} />
-                          <YAxis type="category" dataKey="type" />
+                          <XAxis type="number" domain={[0, 100]} fontSize={12} />
+                          <YAxis type="category" dataKey="type" fontSize={12} />
                           <Tooltip />
                           <Bar dataKey="offline" fill={CHART_COLORS[0]} name="Kursus Offline" barSize={10} />
                           <Bar dataKey="online" fill="#e5e7eb" name="AI" barSize={10} />
@@ -509,102 +522,68 @@ export default function TrainerDashboard() {
                 </Card>
               </div>
             </div>
-            <div className="col-span-12 lg:col-span-4 space-y-6">
+            {/* Right Sidebar */}
+            <div className="col-span-12 xl:col-span-4 space-y-4 lg:space-y-6">
+              {/* AI Insights */}
+              <AIInsights insights={insights} />
+              {/* Alerts & Recommendations */}
               <Card className="shadow-sm">
-                <CardHeader>
-                  <CardTitle className="font-bold">AI INSIGHT</CardTitle>
-                  <Search className="h-5 w-5 text-gray-400" />
+                <CardHeader className="p-4 lg:p-6 pb-0">
+                  <CardTitle className="text-base font-semibold flex items-center gap-2">
+                    <AlertTriangle className="w-5 h-5 text-orange-500" />
+                    ALERT & SARAN
+                  </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  {insights.map((insight, index) => {
-                    const IconComponent = getLucideIcon(insight.icon_name)
-                    return (
-                      <div key={index} className="flex gap-3">
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${insight.color}`}>
-                          <IconComponent className="w-5 h-5" />
-                        </div>
-                        <div>
-                          <p className="font-medium text-sm text-gray-900">{insight.title}</p>
-                          <p className="text-sm text-gray-600">{insight.message}</p>
-                        </div>
-                      </div>
-                    )
-                  })}
-                </CardContent>
-                <Button className="w-full mt-4 bg-blue-600 text-white py-2 rounded-lg text-sm font-semibold hover:bg-blue-700">
-                  Lihat Semua Insight
-                </Button>
-              </Card>
-              <Card className="shadow-sm">
-                <CardHeader>
-                  <CardTitle className="font-bold">ALERT & SARAN</CardTitle>
-                  <Search className="h-5 w-5 text-gray-400" />
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {alerts.map((alert, index) => (
-                    <div key={index} className="text-sm">
-                      <p className="font-semibold">{alert.title}</p>
-                      <p className="text-xs text-gray-500">{alert.message}</p>
-                    </div>
-                  ))}
-                </CardContent>
-                <Button className="w-full mt-4 bg-blue-600 text-white py-2 rounded-lg text-sm font-semibold hover:bg-blue-700">
-                  Lihat Semua
-                </Button>
-              </Card>
-              <Card className="shadow-sm">
-                <CardHeader>
-                  <CardTitle className="font-bold">Rekomendasi</CardTitle>
-                  <Search className="h-5 w-5 text-gray-400" />
-                </CardHeader>
-                <p className="text-sm text-gray-500 mb-4">AI yang mengoptimalkan kinerja dan hasil</p>
-                <CardContent className="space-y-3">
+                <CardContent className="p-4 lg:p-6 pt-4 space-y-3">
                   {alerts.map((alert, index) => (
                     <div
                       key={index}
-                      className={`p-3 rounded-lg flex justify-between items-center ${
+                      className={`p-3 rounded-lg border ${
                         alert.priority === "high"
-                          ? "border border-red-200 bg-red-50"
+                          ? "border-red-200 bg-red-50"
                           : alert.priority === "medium"
-                            ? "border border-yellow-200 bg-yellow-50"
-                            : "border border-green-200 bg-green-50"
+                            ? "border-yellow-200 bg-yellow-50"
+                            : "border-green-200 bg-green-50"
                       }`}
                     >
-                      <div>
-                        <p
-                          className={`font-semibold text-sm ${
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <p
+                            className={`font-semibold text-sm ${
+                              alert.priority === "high"
+                                ? "text-red-800"
+                                : alert.priority === "medium"
+                                  ? "text-yellow-800"
+                                  : "text-green-800"
+                            }`}
+                          >
+                            {alert.title}
+                          </p>
+                          <p
+                            className={`text-xs mt-1 ${
+                              alert.priority === "high"
+                                ? "text-red-600"
+                                : alert.priority === "medium"
+                                  ? "text-yellow-600"
+                                  : "text-green-600"
+                            }`}
+                          >
+                            {alert.message}
+                          </p>
+                        </div>
+                        <Badge
+                          variant="outline"
+                          className={`text-xs font-bold ${
                             alert.priority === "high"
-                              ? "text-red-800"
+                              ? "bg-red-200 text-red-800 border-red-300"
                               : alert.priority === "medium"
-                                ? "text-yellow-800"
-                                : "text-green-800"
+                                ? "bg-yellow-200 text-yellow-800 border-yellow-300"
+                                : "bg-green-200 text-green-800 border-green-300"
                           }`}
                         >
-                          {alert.title}
-                        </p>
-                        <p
-                          className={`text-xs ${
-                            alert.priority === "high"
-                              ? "text-red-600"
-                              : alert.priority === "medium"
-                                ? "text-yellow-600"
-                                : "text-green-600"
-                          }`}
-                        >
-                          {alert.message}
-                        </p>
+                          {alert.priority === "high" ? "Tinggi" : alert.priority === "medium" ? "Sedang" : "Rendah"}
+                        </Badge>
                       </div>
-                      <span
-                        className={`text-xs font-bold px-2 py-1 rounded-full ${
-                          alert.priority === "high"
-                            ? "bg-red-200 text-red-800"
-                            : alert.priority === "medium"
-                              ? "bg-yellow-200 text-yellow-800"
-                              : "bg-green-200 text-green-800"
-                        }`}
-                      >
-                        {alert.priority === "high" ? "Tinggi" : alert.priority === "medium" ? "Sedang" : "Rendah"}
-                      </span>
                     </div>
                   ))}
                 </CardContent>

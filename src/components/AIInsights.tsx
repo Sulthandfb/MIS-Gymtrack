@@ -3,13 +3,28 @@ import { Bell, Zap, CheckCircle, Target, MessageSquare, TrendingUp, AlertTriangl
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge"; 
 
-// ✅ FIXED: HANYA import tipe AIInsight yang fleksibel dari kedua modul
+// Import all possible insight types
 import { AIInsight as FeedbackAIInsightType } from "@/types/feedback";
-import { Insight as MemberInsightType } from "@/types/insight";     
+import { Insight as MemberInsightType } from "@/types/insight";
 
-// Definisi tipe prop yang fleksibel untuk komponen AIInsights
+// Define a generic insight interface that can handle all types
+interface GenericInsight {
+  title: string;
+  // Make all other properties optional to handle different insight structures
+  insight_type?: string;
+  type?: string;
+  impact?: string;
+  confidence?: number;
+  recommendation?: string;
+  description?: string;
+  text?: string;
+  // Add any other properties that might exist in TrainerInsightItem
+  [key: string]: any;
+}
+
+// Updated props interface to accept any insight-like object
 interface AIInsightsProps {
-  insights: Array<FeedbackAIInsightType | MemberInsightType>; 
+  insights: GenericInsight[];
 }
 
 export function AIInsights({ insights }: AIInsightsProps) {
@@ -34,34 +49,22 @@ export function AIInsights({ insights }: AIInsightsProps) {
     }
   };
 
-  // Helper function untuk safely access properties
-  const getInsightProperty = (insight: FeedbackAIInsightType | MemberInsightType, property: string) => {
-    if (property === 'type') {
-      return (insight as FeedbackAIInsightType).insight_type || 
-             (insight as any).type || 
-             "general";
+  // Helper function untuk safely access properties dengan fallback values
+  const getInsightProperty = (insight: GenericInsight, property: string): string | number => {
+    switch (property) {
+      case 'type':
+        return insight.insight_type || insight.type || "general";
+      case 'impact':
+        return insight.impact || "neutral";
+      case 'confidence':
+        return insight.confidence || 0.8; // Default confidence
+      case 'recommendation':
+        return insight.recommendation || "";
+      case 'description':
+        return insight.description || insight.text || "";
+      default:
+        return "";
     }
-    if (property === 'impact') {
-      return (insight as FeedbackAIInsightType).impact || 
-             (insight as any).impact || 
-             "neutral";
-    }
-    if (property === 'confidence') {
-      return (insight as FeedbackAIInsightType).confidence || 
-             (insight as any).confidence || 
-             0;
-    }
-    if (property === 'recommendation') {
-      return (insight as FeedbackAIInsightType).recommendation || 
-             (insight as any).recommendation || 
-             "";
-    }
-    if (property === 'description') {
-      return (insight as FeedbackAIInsightType).description || 
-             (insight as MemberInsightType).text || 
-             "";
-    }
-    return "";
   };
 
   return (
@@ -84,12 +87,12 @@ export function AIInsights({ insights }: AIInsightsProps) {
           <div className="space-y-4 max-h-96 overflow-y-auto custom-scrollbar">
             {insights.slice(0, 4).map((insight, index) => {
               // Menggunakan helper function untuk safely access properties
-              const currentInsightType = getInsightProperty(insight, 'type');
-              const currentImpact = getInsightProperty(insight, 'impact');
-              const currentRecommendation = getInsightProperty(insight, 'recommendation');
+              const currentInsightType = getInsightProperty(insight, 'type') as string;
+              const currentImpact = getInsightProperty(insight, 'impact') as string;
+              const currentRecommendation = getInsightProperty(insight, 'recommendation') as string;
               const currentConfidence = getInsightProperty(insight, 'confidence') as number;
               const currentTitle = insight.title;
-              const currentDescription = getInsightProperty(insight, 'description');
+              const currentDescription = getInsightProperty(insight, 'description') as string;
 
               return (
                 <div key={index} className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">

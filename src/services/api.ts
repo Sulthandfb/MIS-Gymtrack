@@ -9,7 +9,13 @@ import type {
   ChartNotifResponse,
   ChartABTesting,
 } from "@/types/insight"
-import type { Trainer, TrainerDashboardData, TrainerActivityDataItem, TrainerScheduleClassItem } from "@/types/trainer"
+import type {
+  Trainer,
+  TrainerDashboardData,
+  TrainerActivityDataItem,
+  TrainerScheduleClassItem,
+  AIInsightsAndAlertsResponse,
+} from "@/types/trainer"
 import type {
   ProductStats,
   TopSalesData,
@@ -131,6 +137,13 @@ export const fetchTrainerSchedule = async (trainerId: string): Promise<Record<st
   const res = await axios.get(`${API_URL}/api/trainers/${trainerId}/schedule`)
   return res.data as Record<string, TrainerScheduleClassItem[]>
 }
+
+// ✅ NEW: Fetch AI Insights and Alerts
+export const fetchAIInsightsAndAlerts = async (): Promise<AIInsightsAndAlertsResponse> => {
+  const res = await axios.get(`${API_URL}/api/trainers/ai-insights`)
+  return res.data as AIInsightsAndAlertsResponse
+}
+
 
 // ========================================
 // PRODUCT API FUNCTIONS (unchanged)
