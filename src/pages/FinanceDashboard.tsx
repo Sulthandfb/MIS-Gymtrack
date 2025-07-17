@@ -63,6 +63,10 @@ export default function FinanceDashboard() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  // Filter states for charts
+  const [overviewChartFilter, setOverviewChartFilter] = useState("all") // all, 6months, 3months
+  const [incomeChartFilter, setIncomeChartFilter] = useState("all")
+
   // Overview tab state
   const [financialSummary, setFinancialSummary] = useState<FinancialSummary | null>(null)
   const [incomeVsExpenseData, setIncomeVsExpenseData] = useState<IncomeVsExpenseData[]>([])
@@ -161,6 +165,25 @@ export default function FinanceDashboard() {
     }
   }
 
+  // Filter chart data based on selected period
+  const getFilteredChartData = (data: any[], filterType: string) => {
+    if (filterType === "all") return data
+
+    const currentMonth = new Date().getMonth() + 1 // 1-12
+    let startMonth = 1
+
+    if (filterType === "6months") {
+      startMonth = Math.max(1, currentMonth - 5)
+    } else if (filterType === "3months") {
+      startMonth = Math.max(1, currentMonth - 2)
+    }
+
+    return data.filter((item, index) => {
+      const monthIndex = index + 1 // assuming data is ordered Jan-Dec
+      return monthIndex >= startMonth && monthIndex <= currentMonth
+    })
+  }
+
   useEffect(() => {
     loadOverviewData()
   }, [])
@@ -221,6 +244,12 @@ export default function FinanceDashboard() {
       </div>
     )
   }
+
+  // Get filtered data for charts
+  const filteredOverviewData = getFilteredChartData(incomeVsExpenseData, overviewChartFilter)
+  const filteredIncomeData = incomeAnalysis
+    ? getFilteredChartData(incomeAnalysis.monthly_chart_data, incomeChartFilter)
+    : []
 
   return (
     <div className="flex h-screen bg-[#F7F8FA] font-sans text-gray-800 overflow-hidden">
@@ -343,25 +372,27 @@ export default function FinanceDashboard() {
                     </div>
                   </div>
 
-                  {/* Income vs Expenses Chart */}
+                  {/* Income vs Expenses Chart with Filter */}
                   <div className="bg-white p-4 lg:p-6 rounded-lg shadow-sm">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-2">
                       <div>
                         <h3 className="text-base lg:text-lg font-semibold text-gray-900">Statistik Keuangan</h3>
                         <p className="text-xs lg:text-sm text-gray-500">Grafik perbandingan income vs expenses</p>
                       </div>
-                      <Select defaultValue="yearly">
-                        <SelectTrigger className="w-32">
+                      <Select value={overviewChartFilter} onValueChange={setOverviewChartFilter}>
+                        <SelectTrigger className="w-40">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="yearly">Yearly</SelectItem>
+                          <SelectItem value="all">Semua Bulan</SelectItem>
+                          <SelectItem value="6months">6 Bulan Terakhir</SelectItem>
+                          <SelectItem value="3months">3 Bulan Terakhir</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
                     <div className="h-64 lg:h-80">
                       <ResponsiveContainer width="100%" height="100%">
-                        <AreaChart data={incomeVsExpenseData}>
+                        <AreaChart data={filteredOverviewData}>
                           <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                           <XAxis dataKey="month" stroke="#666" fontSize={12} />
                           <YAxis stroke="#666" fontSize={12} tickFormatter={(value) => formatCompactCurrency(value)} />
@@ -529,52 +560,58 @@ export default function FinanceDashboard() {
                   <div className="bg-gradient-to-br from-blue-600 to-blue-800 p-4 lg:p-6 rounded-lg shadow-lg text-white sticky top-6">
                     <div className="flex items-center gap-2 mb-4">
                       <Lightbulb className="w-5 h-5" />
-                      <h3 className="text-lg font-semibold">AI BUSINESS ADVISOR</h3>
+                      <h3 className="text-lg font-semibold">AI BUSINESS INSIGHTS</h3>
                     </div>
                     <div className="space-y-4 max-h-96 overflow-y-auto">
-                      {aiInsights.map((insight) => (
-                        <div
-                          key={insight.id}
-                          className="bg-white/10 backdrop-blur-sm p-4 rounded-lg border border-white/20"
-                        >
-                          <div className="flex items-start gap-3">
-                            <div
-                              className={`p-2 rounded-lg ${
-                                insight.type === "recommendation"
-                                  ? "bg-blue-500/20"
-                                  : insight.type === "prediction"
-                                    ? "bg-emerald-500/20"
-                                    : insight.type === "opportunity"
-                                      ? "bg-orange-500/20"
-                                      : "bg-red-500/20"
-                              }`}
-                            >
-                              {insight.type === "recommendation" && <Target className="w-4 h-4" />}
-                              {insight.type === "prediction" && <TrendingUpIcon className="w-4 h-4" />}
-                              {insight.type === "opportunity" && <Lightbulb className="w-4 h-4" />}
-                              {insight.type === "warning" && <AlertCircle className="w-4 h-4" />}
-                            </div>
-                            <div className="flex-1">
-                              <h4 className="font-semibold text-sm mb-1">{insight.title}</h4>
-                              <p className="text-xs opacity-90 leading-relaxed">{insight.description}</p>
-                              <div className="flex items-center gap-2 mt-2">
-                                <Badge
-                                  variant="outline"
-                                  className={`text-xs ${
-                                    insight.impact === "high"
-                                      ? "border-red-300 text-red-100"
-                                      : insight.impact === "medium"
-                                        ? "border-yellow-300 text-yellow-100"
-                                        : "border-green-300 text-green-100"
-                                  }`}
-                                >
-                                  {insight.impact} impact
-                                </Badge>
+                      {aiInsights
+                        .filter(
+                          (insight) => insight.category.includes("overview") || insight.category.includes("general"),
+                        )
+                        .map((insight) => (
+                          <div
+                            key={insight.id}
+                            className="bg-white/10 backdrop-blur-sm p-4 rounded-lg border border-white/20"
+                          >
+                            <div className="flex items-start gap-3">
+                              <div
+                                className={`p-2 rounded-lg ${
+                                  insight.type === "recommendation"
+                                    ? "bg-blue-500/20"
+                                    : insight.type === "prediction"
+                                      ? "bg-emerald-500/20"
+                                      : insight.type === "opportunity"
+                                        ? "bg-orange-500/20"
+                                        : "bg-red-500/20"
+                                }`}
+                              >
+                                {insight.type === "recommendation" && <Target className="w-4 h-4" />}
+                                {insight.type === "prediction" && <TrendingUpIcon className="w-4 h-4" />}
+                                {insight.type === "opportunity" && <Lightbulb className="w-4 h-4" />}
+                                {insight.type === "warning" && <AlertCircle className="w-4 h-4" />}
+                              </div>
+                              <div className="flex-1">
+                                <h4 className="font-semibold text-sm mb-2">{insight.title}</h4>
+                                <div className="text-xs opacity-90 leading-relaxed whitespace-pre-line">
+                                  {insight.description}
+                                </div>
+                                <div className="flex items-center gap-2 mt-3">
+                                  <Badge
+                                    variant="outline"
+                                    className={`text-xs ${
+                                      insight.impact === "high"
+                                        ? "border-red-300 text-red-100"
+                                        : insight.impact === "medium"
+                                          ? "border-yellow-300 text-yellow-100"
+                                          : "border-green-300 text-green-100"
+                                    }`}
+                                  >
+                                    {insight.impact} impact
+                                  </Badge>
+                                </div>
                               </div>
                             </div>
                           </div>
-                        </div>
-                      ))}
+                        ))}
                     </div>
                   </div>
                 </div>
@@ -642,17 +679,27 @@ export default function FinanceDashboard() {
                       </div>
                     </div>
 
-                    {/* Income Trend Chart */}
+                    {/* Income Trend Chart with Filter */}
                     <div className="bg-white p-4 lg:p-6 rounded-lg shadow-sm">
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-2">
                         <div>
                           <h3 className="text-base lg:text-lg font-semibold text-gray-900">Tren Pendapatan</h3>
                           <p className="text-xs lg:text-sm text-gray-500">Pendapatan per kategori sepanjang tahun</p>
                         </div>
+                        <Select value={incomeChartFilter} onValueChange={setIncomeChartFilter}>
+                          <SelectTrigger className="w-40">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">Semua Bulan</SelectItem>
+                            <SelectItem value="6months">6 Bulan Terakhir</SelectItem>
+                            <SelectItem value="3months">3 Bulan Terakhir</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
                       <div className="h-64 lg:h-80">
                         <ResponsiveContainer width="100%" height="100%">
-                          <LineChart data={incomeAnalysis.monthly_chart_data}>
+                          <LineChart data={filteredIncomeData}>
                             <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                             <XAxis dataKey="month" stroke="#666" fontSize={12} />
                             <YAxis
@@ -832,8 +879,10 @@ export default function FinanceDashboard() {
                                   <TrendingUp className="w-4 h-4" />
                                 </div>
                                 <div className="flex-1">
-                                  <h4 className="font-semibold text-sm mb-1">{insight.title}</h4>
-                                  <p className="text-xs opacity-90 leading-relaxed">{insight.description}</p>
+                                  <h4 className="font-semibold text-sm mb-2">{insight.title}</h4>
+                                  <div className="text-xs opacity-90 leading-relaxed whitespace-pre-line">
+                                    {insight.description}
+                                  </div>
                                 </div>
                               </div>
                             </div>
@@ -1076,7 +1125,7 @@ export default function FinanceDashboard() {
                     <div className="bg-gradient-to-br from-red-600 to-red-800 p-4 lg:p-6 rounded-lg shadow-lg text-white sticky top-6">
                       <div className="flex items-center gap-2 mb-4">
                         <TrendingDown className="w-5 h-5" />
-                        <h3 className="text-lg font-semibold">AI EXPENSES INSIGHTS</h3>
+                        <h3 className="text-lg font-semibold">AI EXPENSE INSIGHTS</h3>
                       </div>
                       <div className="space-y-4 max-h-96 overflow-y-auto">
                         {aiInsights
@@ -1096,8 +1145,10 @@ export default function FinanceDashboard() {
                                   <AlertCircle className="w-4 h-4" />
                                 </div>
                                 <div className="flex-1">
-                                  <h4 className="font-semibold text-sm mb-1">{insight.title}</h4>
-                                  <p className="text-xs opacity-90 leading-relaxed">{insight.description}</p>
+                                  <h4 className="font-semibold text-sm mb-2">{insight.title}</h4>
+                                  <div className="text-xs opacity-90 leading-relaxed whitespace-pre-line">
+                                    {insight.description}
+                                  </div>
                                 </div>
                               </div>
                             </div>
