@@ -76,6 +76,7 @@ class TrainerInsightItem(BaseModel):
     message: str
     type: str
     color: str
+    recommendation: Optional[str] = None
 
 class TrainerAlertItem(BaseModel):
     icon_name: str
@@ -83,6 +84,7 @@ class TrainerAlertItem(BaseModel):
     message: str
     action: str
     priority: str
+    recommendation: Optional[str] = None
 
 # Model Utama untuk semua data Dashboard Trainer
 class TrainerDashboardData(BaseModel):
@@ -93,6 +95,14 @@ class TrainerDashboardData(BaseModel):
     courseComparisonData: List[TrainerCourseComparisonData]
     trainerPerformanceData: List[TrainerPerformance]
     insights: List[TrainerInsightItem]
+    alerts: List[TrainerAlertItem]
+
+    class Config:
+        from_attributes = True
+
+class TrainerAIInsightsResponse(BaseModel):
+    insights: List[TrainerInsightItem]
+    recommendations: List[dict]
     alerts: List[TrainerAlertItem]
 
     class Config:

@@ -40,8 +40,8 @@ async def generate_trainer_insights_and_alerts(
     prompt_parts.append("1. Dua (2) 'insight' bisnis yang paling relevan. Insight harus ringkas dan relevan dengan kinerja trainer atau tren kelas.")
     prompt_parts.append("2. Dua (2) 'alert' atau 'saran tindakan' yang paling penting. Alert/saran harus menyoroti potensi masalah atau peluang peningkatan.")
     prompt_parts.append("Format output Anda sebagai JSON array dari objek. Setiap objek harus memiliki kunci 'type' ('insight' atau 'alert') dan 'data'.")
-    prompt_parts.append("Untuk 'insight', 'data' harus memiliki 'title', 'message', 'type' ('success', 'warning', 'info'), dan 'color' (TailwindCSS class).")
-    prompt_parts.append("Untuk 'alert', 'data' harus memiliki 'title', 'message', 'action', dan 'priority' ('high', 'medium', 'low').")
+    prompt_parts.append("Untuk 'insight', 'data' harus memiliki 'title', 'message' (penjelasan detail), 'recommendation' (solusi), 'impact' ('positive', 'negative', 'neutral'), 'confidence' (0.0-1.0), dan 'type' ('trend', 'issue', 'strength', 'opportunity').")
+    prompt_parts.append("Untuk 'alert', 'data' harus memiliki 'title', 'message' (penjelasan detail), 'action' (tindakan yang disarankan), dan 'priority' ('high', 'medium', 'low').")
     prompt_parts.append("Pastikan output JSON Anda valid dan hanya berisi array objek yang diminta. Jangan ada teks tambahan di luar JSON.")
 
     full_prompt = "\n".join(prompt_parts)
@@ -67,17 +67,30 @@ async def generate_trainer_insights_and_alerts(
         for item in parsed_response_list:
             if item.get("type") == "insight" and "data" in item:
                 try:
-                    insight = TrainerInsightItem(icon_name="Lightbulb", **item["data"])
+                    insight_data = item["data"]
+                    insight = TrainerInsightItem(
+                        icon_name="Lightbulb",
+                        title=insight_data.get("title", "Insight AI"),
+                        message=insight_data.get("message", ""),
+                        recommendation=insight_data.get("recommendation", ""),
+                        type=insight_data.get("type", "info"),
+                        impact=insight_data.get("impact", "neutral"),
+                        confidence=insight_data.get("confidence", 0.8),
+                        color=insight_data.get("color", "text-blue-600 bg-blue-100")
+                    )
                     insights.append(insight)
-                    recommendations.append({"title": item["data"]["title"]})
-                except Exception:
-                    fallback_title = item["data"].get("title", "Insight AI Parsial")
+                    recommendations.append({"title": insight_data.get("title", "Insight AI")})
+                except Exception as e:
+                    fallback_title = item.get("data", {}).get("title", "Insight AI Parsial")
                     recommendations.append({"title": fallback_title})
                     insights.append(TrainerInsightItem(
                         icon_name="Lightbulb",
                         title=fallback_title,
                         message="Data insight dari AI tidak lengkap/sesuai.",
+                        recommendation="Periksa log backend untuk detail error",
                         type="warning",
+                        impact="negative",
+                        confidence=0.5,
                         color="text-orange-600 bg-orange-100"
                     ))
             elif item.get("type") == "alert" and "data" in item:
@@ -116,7 +129,10 @@ def _fallback_response(error_message: str) -> Dict[str, List[Dict[str, Any]]]:
                 icon_name="XCircle",
                 title="Error Insight AI",
                 message=error_message,
+                recommendation="Coba refresh halaman atau periksa koneksi internet",
                 type="error",
+                impact="negative",
+                confidence=1.0,
                 color="text-red-600 bg-red-100"
             )
         ],

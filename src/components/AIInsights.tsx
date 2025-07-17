@@ -102,8 +102,11 @@ export function AIInsights({ insights }: AIInsightsProps) {
                     </div>
                     <div className="flex-1">
                       <h4 className="font-semibold text-sm text-white mb-1">{currentTitle}</h4>
-                      {currentDescription && (
-                        <p className="text-blue-100 text-sm leading-relaxed mt-1 opacity-90">{currentDescription}</p>
+                      {/* Prioritas: message > description > text */}
+                      {(insight.message || currentDescription) && (
+                        <p className="text-blue-100 text-sm leading-relaxed mt-1 opacity-90">
+                          {insight.message || currentDescription}
+                        </p>
                       )}
                     </div>
                   </div>

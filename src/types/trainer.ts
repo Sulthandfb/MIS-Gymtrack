@@ -59,17 +59,21 @@ export interface TrainerCourseComparisonData {
 }
 
 export interface TrainerInsightItem {
+  icon_name?: string
   title: string
   message: string
   recommendation?: string // Solusi bisnis
   type: string // e.g., "trend", "issue", "strength", "opportunity"
   impact: string // e.g., "positive", "negative", "neutral"
   confidence: number // Confidence score dari AI
+  color?: string
 }
 
 export interface TrainerAlertItem {
+  icon_name?: string
   title: string
   message: string
+  action?: string
   priority: string
 }
 

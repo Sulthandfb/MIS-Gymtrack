@@ -48,6 +48,7 @@ export default function TrainerDetail({ trainerId }: TrainerDetailProps) {
   const [scheduleData, setScheduleData] = useState<Record<string, TrainerScheduleClassItem[]>>({})
   const [loading, setLoading] = useState<boolean>(true)
   const [error, setError] = useState<string | null>(null)
+  const [dateRange, setDateRange] = useState<number>(30) // Default 30 hari
 
   useEffect(() => {
     const loadTrainerDetailData = async () => {
@@ -55,7 +56,7 @@ export default function TrainerDetail({ trainerId }: TrainerDetailProps) {
         setLoading(true)
         const detail = await fetchTrainerDetail(trainerId)
         setTrainerData(detail)
-        const activity = await fetchTrainerActivity(trainerId)
+        const activity = await fetchTrainerActivity(trainerId, dateRange)
         setActivityData(activity)
         const schedule = await fetchTrainerSchedule(trainerId)
         setScheduleData(schedule)
@@ -70,7 +71,12 @@ export default function TrainerDetail({ trainerId }: TrainerDetailProps) {
     if (trainerId) {
       loadTrainerDetailData()
     }
-  }, [trainerId])
+  }, [trainerId, dateRange])
+
+  // Function to handle date range change
+  const handleDateRangeChange = (days: number) => {
+    setDateRange(days)
+  }
 
   if (loading) {
     return (
@@ -214,7 +220,35 @@ export default function TrainerDetail({ trainerId }: TrainerDetailProps) {
               {/* Training Activity Chart */}
               <Card className="shadow-sm">
                 <CardHeader className="p-4 lg:p-6 pb-0">
-                  <CardTitle className="text-base lg:text-lg font-semibold text-gray-900">Training Activity</CardTitle>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+                    <CardTitle className="text-base lg:text-lg font-semibold text-gray-900">Training Activity</CardTitle>
+                    <div className="flex gap-2">
+                      <Button
+                        variant={dateRange === 14 ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => handleDateRangeChange(14)}
+                        className="text-xs lg:text-sm"
+                      >
+                        14 Hari
+                      </Button>
+                      <Button
+                        variant={dateRange === 30 ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => handleDateRangeChange(30)}
+                        className="text-xs lg:text-sm"
+                      >
+                        30 Hari
+                      </Button>
+                      <Button
+                        variant={dateRange === 90 ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => handleDateRangeChange(90)}
+                        className="text-xs lg:text-sm"
+                      >
+                        3 Bulan
+                      </Button>
+                    </div>
+                  </div>
                   <div className="flex flex-wrap gap-3 lg:gap-4 text-xs lg:text-sm">
                     <div className="flex items-center gap-2">
                       <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
@@ -235,8 +269,15 @@ export default function TrainerDetail({ trainerId }: TrainerDetailProps) {
                     <ResponsiveContainer width="100%" height="100%">
                       <LineChart data={activityData}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                        <XAxis dataKey="date" stroke="#666" fontSize={12} />
-                        <YAxis yAxisId="left" domain={[0, 30]} stroke="#666" fontSize={12} />
+                        <XAxis 
+                          dataKey="date" 
+                          stroke="#666" 
+                          fontSize={12} 
+                          angle={-45}
+                          textAnchor="end"
+                          height={80}
+                        />
+                        <YAxis yAxisId="left" domain={[0, 'dataMax + 5']} stroke="#666" fontSize={12} />
                         <YAxis yAxisId="right" orientation="right" domain={[0, 5]} stroke="#666" fontSize={12} />
                         <ReferenceLine
                           yAxisId="left"
@@ -288,12 +329,14 @@ export default function TrainerDetail({ trainerId }: TrainerDetailProps) {
                   </div>
                   <div className="mt-4 p-3 bg-blue-50 rounded-lg">
                     <p className="text-xs lg:text-sm text-blue-700">
-                      <strong>Insight:</strong> Data aktivitas trainer {trainerData.name} selama 14 hari terakhir
+                      <strong>Insight:</strong> Data aktivitas trainer {trainerData.name} selama {dateRange} hari terakhir
                       menunjukkan
-                      {activityData.length > 0
-                        ? ` kehadiran rata-rata ${(activityData.reduce((sum, item) => sum + item.kehadiran, 0) / activityData.length).toFixed(1)} peserta,
-                          dan kepuasan rata-rata ${(activityData.reduce((sum, item) => sum + item.kepuasan, 0) / activityData.length).toFixed(1)}/5.`
-                        : " belum ada data aktivitas."}
+                      {activityData.length > 0 ? (
+                        <>
+                          {` kehadiran rata-rata ${(activityData.reduce((sum, item) => sum + item.kehadiran, 0) / activityData.length).toFixed(1)} peserta, dan kepuasan rata-rata ${(activityData.reduce((sum, item) => sum + item.kepuasan, 0) / activityData.length).toFixed(1)}/5. `}
+                          Total {activityData.reduce((sum, item) => sum + item.kehadiran, 0)} peserta telah menghadiri kelas dalam periode ini.
+                        </>
+                      ) : " belum ada data aktivitas."}
                     </p>
                   </div>
                 </CardContent>

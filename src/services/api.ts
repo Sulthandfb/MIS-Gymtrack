@@ -15,6 +15,8 @@ import type {
   TrainerActivityDataItem,
   TrainerScheduleClassItem,
   AIInsightsAndAlertsResponse,
+  TrainerInsightItem,
+  TrainerAlertItem,
 } from "@/types/trainer"
 import type {
   ProductStats,
@@ -128,7 +130,7 @@ export const fetchTrainerDashboardData = async (): Promise<TrainerDashboardData>
   return res.data as TrainerDashboardData
 }
 
-export const fetchTrainerActivity = async (trainerId: string): Promise<TrainerActivityDataItem[]> => {
+export const fetchTrainerActivity = async (trainerId: string, dateRange: number): Promise<TrainerActivityDataItem[]> => {
   const res = await axios.get(`${API_URL}/api/trainers/${trainerId}/activity`)
   return res.data as TrainerActivityDataItem[]
 }
@@ -136,6 +138,11 @@ export const fetchTrainerActivity = async (trainerId: string): Promise<TrainerAc
 export const fetchTrainerSchedule = async (trainerId: string): Promise<Record<string, TrainerScheduleClassItem[]>> => {
   const res = await axios.get(`${API_URL}/api/trainers/${trainerId}/schedule`)
   return res.data as Record<string, TrainerScheduleClassItem[]>
+}
+
+export const fetchTrainerAIInsights = async (): Promise<{insights: TrainerInsightItem[], alerts: TrainerAlertItem[]}> => {
+  const res = await axios.get(`${API_URL}/api/trainers/ai-insights`)
+  return res.data as {insights: TrainerInsightItem[], alerts: TrainerAlertItem[]}
 }
 
 // ✅ NEW: Fetch AI Insights and Alerts

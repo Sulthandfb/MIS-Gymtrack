@@ -29,11 +29,11 @@ def read_trainers(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)
 # --- Endpoint Baru untuk Trainer Detail Page ---
 
 @router.get("/trainers/{trainer_id}/activity", response_model=List[schemas_trainer.TrainerActivityDataItem])
-async def get_trainer_activity(trainer_id: int, db: Session = Depends(get_db)):
+async def get_trainer_activity(trainer_id: int, days: int = 30, db: Session = Depends(get_db)):
     """
     Mengambil data aktivitas pelatihan historis untuk trainer tertentu.
     """
-    activity_data = await crud_trainer.get_trainer_activity_data(db, trainer_id)
+    activity_data = await crud_trainer.get_trainer_activity_data(db, trainer_id, days)
     if not activity_data:
         # Bisa mengembalikan list kosong atau 404 jika tidak ada data sama sekali
         return [] # Atau raise HTTPException(status_code=404, detail="Activity data not found for trainer")

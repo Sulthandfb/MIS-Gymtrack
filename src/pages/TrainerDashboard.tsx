@@ -531,7 +531,7 @@ export default function TrainerDashboard() {
                 <CardHeader className="p-4 lg:p-6 pb-0">
                   <CardTitle className="text-base font-semibold flex items-center gap-2">
                     <AlertTriangle className="w-5 h-5 text-orange-500" />
-                    ALERT & SARAN
+                    ALERT
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-4 lg:p-6 pt-4 space-y-3">
@@ -548,19 +548,28 @@ export default function TrainerDashboard() {
                     >
                       <div className="flex justify-between items-start">
                         <div className="flex-1">
-                          <p
-                            className={`font-semibold text-sm ${
+                          <div className="flex items-center gap-2 mb-1">
+                            <AlertTriangle className={`w-4 h-4 ${
                               alert.priority === "high"
-                                ? "text-red-800"
+                                ? "text-red-500"
                                 : alert.priority === "medium"
-                                  ? "text-yellow-800"
-                                  : "text-green-800"
-                            }`}
-                          >
-                            {alert.title}
-                          </p>
+                                  ? "text-yellow-500"
+                                  : "text-green-500"
+                            }`} />
+                            <p
+                              className={`font-semibold text-sm ${
+                                alert.priority === "high"
+                                  ? "text-red-800"
+                                  : alert.priority === "medium"
+                                    ? "text-yellow-800"
+                                    : "text-green-800"
+                              }`}
+                            >
+                              {alert.title}
+                            </p>
+                          </div>
                           <p
-                            className={`text-xs mt-1 ${
+                            className={`text-xs ${
                               alert.priority === "high"
                                 ? "text-red-600"
                                 : alert.priority === "medium"
@@ -573,7 +582,7 @@ export default function TrainerDashboard() {
                         </div>
                         <Badge
                           variant="outline"
-                          className={`text-xs font-bold ${
+                          className={`text-xs font-bold ml-2 ${
                             alert.priority === "high"
                               ? "bg-red-200 text-red-800 border-red-300"
                               : alert.priority === "medium"
@@ -581,7 +590,7 @@ export default function TrainerDashboard() {
                                 : "bg-green-200 text-green-800 border-green-300"
                           }`}
                         >
-                          {alert.priority === "high" ? "Tinggi" : alert.priority === "medium" ? "Sedang" : "Rendah"}
+                          {alert.priority === "high" ? "TINGGI" : alert.priority === "medium" ? "SEDANG" : "RENDAH"}
                         </Badge>
                       </div>
                     </div>

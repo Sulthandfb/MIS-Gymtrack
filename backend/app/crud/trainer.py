@@ -295,24 +295,26 @@ async def get_trainer_performance_data(db: Session):
         "alerts": ai_generated_output["alerts"]
     }
 
-async def get_trainer_activity_data(db: Session, trainer_id: int) -> List[Dict[str, Any]]:
+async def get_trainer_activity_data(db: Session, trainer_id: int, days: int = 30) -> List[Dict[str, Any]]:
     end_date = date.today()
-    start_date = end_date - timedelta(days=13) # 14 hari terakhir
+    start_date = end_date - timedelta(days=days-1) # Default 30 hari, bisa disesuaikan
 
+    # Gunakan attendance_date dari MemberClass karena itu adalah tanggal aktual kehadiran
     activity_query = (
         db.query(
-            ClassSchedule.schedule_date.label('date'),
+            MemberClass.attendance_date.label('date'),
             func.count(MemberClass.member_id).label('kehadiran'), # Total member hadir
             func.avg(MemberClass.rating).label('kepuasan') # Rata-rata kepuasan
         )
-        .join(MemberClass, MemberClass.schedule_id == ClassSchedule.schedule_id)
+        .join(ClassSchedule, MemberClass.schedule_id == ClassSchedule.schedule_id)
         .filter(
             ClassSchedule.trainer_id == trainer_id,
-            ClassSchedule.schedule_date.between(start_date, end_date),
-            MemberClass.attendance_status == 'Present' # Hanya hitung yang hadir
+            MemberClass.attendance_date.between(start_date, end_date),
+            MemberClass.attendance_status == 'Present', # Hanya hitung yang hadir
+            MemberClass.attendance_date.isnot(None) # Pastikan attendance_date tidak null
         )
-        .group_by(ClassSchedule.schedule_date)
-        .order_by(ClassSchedule.schedule_date)
+        .group_by(MemberClass.attendance_date)
+        .order_by(MemberClass.attendance_date)
         .all()
     )
 
