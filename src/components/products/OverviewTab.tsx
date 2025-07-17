@@ -1,4 +1,5 @@
 "use client"
+
 import { useEffect, useState } from "react"
 import { Package, Pill, TrendingUp, AlertTriangle, ShoppingCart } from "lucide-react"
 import {
@@ -18,6 +19,8 @@ import {
 import { AIInsights } from "@/components/AIInsights"
 import { fetchProductDashboardData } from "@/services/api"
 import type { ProductStats, TopSalesData, CategoryData, SalesTrendData, ProductInsight } from "@/types/product"
+import { format, parseISO } from "date-fns" // Import date-fns for date formatting
+import { id } from "date-fns/locale" // For Indonesian locale
 
 export function OverviewTab() {
   const [stats, setStats] = useState<ProductStats>({
@@ -38,9 +41,7 @@ export function OverviewTab() {
       try {
         setLoading(true)
         setError(null)
-
         const data = await fetchProductDashboardData()
-
         setStats(data.stats)
         setTopSales(data.topSales)
         setCategoryData(data.categoryData)
@@ -53,7 +54,6 @@ export function OverviewTab() {
         setLoading(false)
       }
     }
-
     loadDashboardData()
   }, [])
 
@@ -142,7 +142,6 @@ export function OverviewTab() {
               </div>
             </div>
           </div>
-
           {/* Charts Row 1 - Responsive layout */}
           <div className="col-span-12 lg:col-span-8">
             <div className="bg-white p-4 lg:p-6 rounded-xl shadow-sm border border-gray-100 h-full">
@@ -201,21 +200,44 @@ export function OverviewTab() {
               </div>
             </div>
           </div>
-
           {/* Sales Trend Chart - Full width */}
           <div className="col-span-12">
             <div className="bg-white p-4 lg:p-6 rounded-xl shadow-sm border border-gray-100">
               <div className="flex justify-between items-start mb-4">
                 <div>
-                  <h3 className="text-base lg:text-lg font-semibold text-gray-900">Tren Penjualan Mingguan</h3>
-                  <p className="text-xs lg:text-sm text-gray-500">Penjualan 7 hari terakhir</p>
+                  <h3 className="text-base lg:text-lg font-semibold text-gray-900">
+                    Tren Penjualan Produk Keseluruhan
+                  </h3>{" "}
+                  {/* Updated title */}
+                  <p className="text-xs lg:text-sm text-gray-500">Penjualan dari data awal hingga saat ini</p>{" "}
+                  {/* Updated description */}
                 </div>
               </div>
               <div className="h-64 lg:h-80">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={salesTrend} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                    <XAxis dataKey="day" stroke="#666" fontSize={12} />
+                    <XAxis
+                      dataKey="date" // Changed from "day" to "date"
+                      stroke="#666"
+                      fontSize={12}
+                      angle={-45} // Added rotation for long date labels
+                      textAnchor="end" // Adjusted text position after rotation
+                      height={80} // Provided more space for rotated labels
+                      tickFormatter={(value) => {
+                        const date = parseISO(value) // Parse the ISO date string
+                        if (salesTrend.length <= 30) {
+                          // If data is for <= 1 month, show day & month
+                          return format(date, "MMM dd", { locale: id })
+                        } else if (salesTrend.length <= 365) {
+                          // If data is for <= 1 year, show month & year
+                          return format(date, "MMM yyyy", { locale: id })
+                        } else {
+                          // If data is for > 1 year, show only year
+                          return format(date, "yyyy", { locale: id })
+                        }
+                      }}
+                    />
                     <YAxis stroke="#666" fontSize={12} />
                     <Tooltip
                       contentStyle={{
@@ -238,7 +260,6 @@ export function OverviewTab() {
               </div>
             </div>
           </div>
-
           {/* AI Insights and Notifications - Side by side on desktop */}
           <div className="col-span-12 lg:col-span-6">
             <AIInsights insights={insights} />

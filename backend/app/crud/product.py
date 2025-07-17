@@ -18,7 +18,6 @@ from app.schemas.product import (
 # ========================================
 def get_product_stats(db: Session) -> ProductStats:
     """Get summary statistics for overview cards"""
-    
     # Total products
     total_products = db.query(Product).filter(Product.status == "active").count()
     
@@ -50,7 +49,6 @@ def get_product_stats(db: Session) -> ProductStats:
 
 def get_top_sales(db: Session, limit: int = 5) -> List[TopSalesData]:
     """Get top selling products for bar chart"""
-    
     results = db.query(
         Product.name,
         func.sum(SaleItem.quantity).label('total_sales')
@@ -64,7 +62,6 @@ def get_top_sales(db: Session, limit: int = 5) -> List[TopSalesData]:
 
 def get_category_distribution(db: Session) -> List[CategoryData]:
     """Get product distribution by category for pie chart"""
-    
     results = db.query(
         ProductCategory.name,
         func.count(Product.product_id).label('count'),
@@ -82,19 +79,25 @@ def get_category_distribution(db: Session) -> List[CategoryData]:
         for name, count, color_code in results
     ]
 
-def get_sales_trend(db: Session, days: int = 7) -> List[SalesTrendData]:
-    """Get sales trend for line chart (last 7 days)"""
-    
-    end_date = datetime.now().date()
-    start_date = end_date - timedelta(days=days-1)
-    
+def get_sales_trend(db: Session) -> List[SalesTrendData]:
+    """Get sales trend for line chart (all available data)"""
+    # Find the earliest and latest sale dates
+    min_sale_date_result = db.query(func.min(Sale.sale_date)).scalar()
+    max_sale_date_result = db.query(func.max(Sale.sale_date)).scalar()
+
+    if not min_sale_date_result or not max_sale_date_result:
+        return []  # No sales data, return empty list
+
+    start_date = min_sale_date_result
+    end_date = max_sale_date_result
+
     # Generate all dates in range
     date_range = []
     current_date = start_date
     while current_date <= end_date:
         date_range.append(current_date)
         current_date += timedelta(days=1)
-    
+
     # Get sales data
     sales_data = db.query(
         Sale.sale_date,
@@ -104,16 +107,17 @@ def get_sales_trend(db: Session, days: int = 7) -> List[SalesTrendData]:
         Sale.sale_date <= end_date,
         Sale.status == "completed"
     ).group_by(Sale.sale_date).all()
-    
+
     # Create lookup dict
     sales_dict = {sale_date: int(sales) for sale_date, sales in sales_data}
-    
+
     # Generate result with all days
     result = []
     for date_item in date_range:
-        day_name = ["Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min"][date_item.weekday()]
+        # Format date as YYYY-MM-DD for the chart
+        formatted_date = date_item.strftime("%Y-%m-%d")
         sales = sales_dict.get(date_item, 0)
-        result.append(SalesTrendData(day=day_name, sales=sales))
+        result.append(SalesTrendData(date=formatted_date, sales=sales))
     
     return result
 
@@ -122,7 +126,6 @@ def get_sales_trend(db: Session, days: int = 7) -> List[SalesTrendData]:
 # ========================================
 def get_products_with_filters(db: Session, filters: ProductFilter) -> List[ProductResponse]:
     """Get products list with filters for table"""
-    
     query = db.query(
         Product.product_id,
         Product.name,
@@ -187,7 +190,6 @@ def get_products_with_filters(db: Session, filters: ProductFilter) -> List[Produ
 # ========================================
 def get_segmentation_data(db: Session, filters: SegmentationFilter) -> List[SegmentationData]:
     """Get product segmentation by member goals and age"""
-    
     # Base query untuk mendapatkan pembelian berdasarkan goal
     base_query = db.query(
         Product.name.label('product_name'),
@@ -263,7 +265,6 @@ def get_segmentation_data(db: Session, filters: SegmentationFilter) -> List[Segm
 
 def get_cross_sell_data(db: Session) -> List[CrossSellData]:
     """Get cross-sell analysis based on products bought together - FIXED VERSION"""
-    
     try:
         # ✅ Simplified approach using subquery to find products bought together
         # Get sales that have more than 1 item (potential cross-sell)
@@ -311,7 +312,6 @@ def get_cross_sell_data(db: Session) -> List[CrossSellData]:
 # ========================================
 def get_segmentation_insights(db: Session, filters: SegmentationFilter) -> List[ProductInsight]:
     """Generate insights specific to segmentation analysis"""
-    
     try:
         # Get segmentation data for analysis
         segmentation_data = get_segmentation_data(db, filters)
@@ -343,32 +343,32 @@ def get_segmentation_insights(db: Session, filters: SegmentationFilter) -> List[
                     recommendation=f"Fokus pada pengembangan produk dan marketing untuk segmen {dominant_goal}. Pertimbangkan bundling khusus untuk target ini.",
                     borderColor="border-blue-500"
                 ))
-            
-            # Top performing product insight
-            if segmentation_data:
-                top_product = segmentation_data[0]
-                top_total = top_product.weightLoss + top_product.muscleGain + top_product.endurance
                 
-                insights.append(ProductInsight(
-                    title="Produk Multi-Segmen Terbaik",
-                    text=f"{top_product.product} menunjukkan performa terbaik dengan {top_total} unit terjual across semua segmen.",
-                    recommendation=f"Jadikan {top_product.product} sebagai flagship product. Buat campaign yang menargetkan semua segmen goal.",
-                    borderColor="border-green-500"
-                ))
-            
-            # Cross-segment opportunity
-            balanced_products = [
-                item for item in segmentation_data 
-                if min(item.weightLoss, item.muscleGain, item.endurance) > 0
-            ]
-            
-            if balanced_products:
-                insights.append(ProductInsight(
-                    title="Peluang Cross-Segment",
-                    text=f"{len(balanced_products)} produk menunjukkan appeal lintas segmen. Ini menandakan potensi market yang lebih luas.",
-                    recommendation="Kembangkan strategi marketing universal untuk produk-produk ini. Fokus pada benefit yang relevan untuk semua goal.",
-                    borderColor="border-purple-500"
-                ))
+                # Top performing product insight
+                if segmentation_data:
+                    top_product = segmentation_data[0]
+                    top_total = top_product.weightLoss + top_product.muscleGain + top_product.endurance
+                    
+                    insights.append(ProductInsight(
+                        title="Produk Multi-Segmen Terbaik",
+                        text=f"{top_product.product} menunjukkan performa terbaik dengan {top_total} unit terjual across semua segmen.",
+                        recommendation=f"Jadikan {top_product.product} sebagai flagship product. Buat campaign yang menargetkan semua segmen goal.",
+                        borderColor="border-green-500"
+                    ))
+                    
+                    # Cross-segment opportunity
+                    balanced_products = [
+                        item for item in segmentation_data 
+                        if min(item.weightLoss, item.muscleGain, item.endurance) > 0
+                    ]
+                    
+                    if balanced_products:
+                        insights.append(ProductInsight(
+                            title="Peluang Cross-Segment",
+                            text=f"{len(balanced_products)} produk menunjukkan appeal lintas segmen. Ini menandakan potensi market yang lebih luas.",
+                            recommendation="Kembangkan strategi marketing universal untuk produk-produk ini. Fokus pada benefit yang relevan untuk semua goal.",
+                            borderColor="border-purple-500"
+                        ))
         
         # Age-specific insights if age filter is applied
         if filters.ageRange != "all":
@@ -398,7 +398,6 @@ def get_segmentation_insights(db: Session, filters: SegmentationFilter) -> List[
 # ========================================
 def get_products_for_simulation(db: Session) -> List[Dict[str, Any]]:
     """Get products available for price simulation"""
-    
     results = db.query(
         Product.product_id,
         Product.name,
@@ -428,7 +427,6 @@ def get_products_for_simulation(db: Session) -> List[Dict[str, Any]]:
 
 def calculate_price_elasticity(db: Session, product_id: int) -> float:
     """Calculate price elasticity based on historical data"""
-    
     try:
         # Get historical sales data for the last 6 months
         six_months_ago = datetime.now().date() - timedelta(days=180)
@@ -466,7 +464,6 @@ def calculate_price_elasticity(db: Session, product_id: int) -> float:
 
 def simulate_price_change(db: Session, request: PriceSimulationRequest) -> PriceSimulationResponse:
     """Simulate the impact of price changes on sales and profit"""
-    
     try:
         # Get product data
         product = db.query(Product).filter(Product.product_id == request.productId).first()
@@ -525,7 +522,6 @@ def simulate_price_change(db: Session, request: PriceSimulationRequest) -> Price
 
 def generate_price_impact_chart(db: Session, product_id: int) -> List[PriceImpactData]:
     """Generate data for price impact visualization"""
-    
     try:
         product = db.query(Product).filter(Product.product_id == product_id).first()
         if not product:

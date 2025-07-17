@@ -22,7 +22,7 @@ class CategoryData(BaseModel):
     color: str
 
 class SalesTrendData(BaseModel):
-    day: str
+    date: str # Changed from 'day' to 'date'
     sales: int
 
 class ProductInsight(BaseModel):
@@ -98,7 +98,7 @@ class ProductCategoryResponse(BaseModel):
     name: str
     description: Optional[str]
     color_code: Optional[str]
-    
+        
     class Config:
         from_attributes = True
 
@@ -115,7 +115,7 @@ class ProductDetailResponse(BaseModel):
     created_date: date
     status: str
     margin: float
-    
+        
     class Config:
         from_attributes = True
 
@@ -126,7 +126,7 @@ class SaleResponse(BaseModel):
     total_amount: Decimal
     payment_method: str
     status: str
-    
+        
     class Config:
         from_attributes = True
 
@@ -138,7 +138,7 @@ class SaleItemResponse(BaseModel):
     quantity: int
     unit_price: Decimal
     subtotal: Decimal
-    
+        
     class Config:
         from_attributes = True
 
@@ -151,7 +151,7 @@ class ProductInventoryResponse(BaseModel):
     stock_date: date
     notes: Optional[str]
     expiry_date: Optional[date]
-    
+        
     class Config:
         from_attributes = True
 

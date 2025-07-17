@@ -1,13 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional
-
 from app.services.groq_client import get_groq_client
 from app.services.product_insight_generator import generate_product_insights
-
 # ✅ Fix import paths - add 'app.' prefix
 from app.database import get_db
-
 # ✅ Fix import paths - add 'app.' prefix
 from app.crud.product import (
     get_product_stats, get_top_sales, get_category_distribution, 
@@ -30,7 +27,7 @@ async def get_product_statistics(db: Session = Depends(get_db)):
     """
     Get product statistics for overview dashboard cards
     - Total products
-    - Total supplements  
+    - Total supplements 
     - Weekly sales
     - Low stock count
     """
@@ -62,14 +59,13 @@ async def get_product_category_distribution(db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=f"Error fetching category distribution: {str(e)}")
 
 @router.get("/trend", response_model=List[SalesTrendData])
-async def get_product_sales_trend(
-    days: int = Query(7, ge=1, le=30),
+async def get_product_sales_trend( # Removed days parameter
     db: Session = Depends(get_db)):
     """
-    Get sales trend for line chart (default last 7 days)
+    Get sales trend for line chart (all available data)
     """
     try:
-        return get_sales_trend(db, days)
+        return get_sales_trend(db) # Removed days argument
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching sales trend: {str(e)}")
 
@@ -82,11 +78,9 @@ async def get_product_ai_insights(db: Session = Depends(get_db)):
         # Get comprehensive product data for AI analysis
         stats = get_product_stats(db)
         top_sales = get_top_sales(db, 10)
-        
         # Generate specialized product insights using Groq
         groq_client = get_groq_client()
         insights = await generate_product_insights(groq_client, stats, top_sales)
-        
         return insights
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error generating product insights: {str(e)}")

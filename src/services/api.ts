@@ -165,9 +165,10 @@ export const fetchCategoryDistribution = async (): Promise<CategoryData[]> => {
   }
 }
 
-export const fetchSalesTrend = async (days = 7): Promise<SalesTrendData[]> => {
+export const fetchSalesTrend = async (): Promise<SalesTrendData[]> => {
+  // Removed days parameter
   try {
-    const res = await axios.get(`${API_URL}/api/product/trend?days=${days}`)
+    const res = await axios.get(`${API_URL}/api/product/trend`) // Removed days query param
     return res.data as SalesTrendData[]
   } catch (error) {
     console.error("Error fetching sales trend:", error)
@@ -627,12 +628,12 @@ export const fetchDashboardSummary = async () => {
 export const fetchProductDashboardData = async () => {
   try {
     const [stats, topSales, categoryData, salesTrend, insights] = await Promise.all([
-      fetchProductStats(),
-      fetchTopSales(5),
-      fetchCategoryDistribution(),
-      fetchSalesTrend(7),
-      fetchProductInsights(),
-    ])
+        fetchProductStats(),
+        fetchTopSales(5),
+        fetchCategoryDistribution(),
+        fetchSalesTrend(),
+        fetchProductInsights(),
+      ])
     return {
       stats,
       topSales,
