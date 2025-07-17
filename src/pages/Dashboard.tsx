@@ -1,4 +1,3 @@
-
 "use client"
 
 import type React from "react"
@@ -252,22 +251,20 @@ const Dashboard: React.FC = () => {
                 </div>
                 <div>
                     <h3 className="font-semibold text-gray-900">Trainers</h3>
-                    <p className="text-xs text-gray-500">Active trainers</p>
+                    <p className="text-xs text-gray-500">Total keseluruhan trainer & kelas</p> {/* Updated description */}
                 </div>
                 </div>
                 </div>
                 <div className="space-y-2">
-                {/* Change from total_trainers to active_trainers, or consider if you intended a different total */}
-                <div className="text-2xl lg:text-3xl font-bold text-gray-900">{metrics.trainerStats?.active_trainers || 0}</div>
+                <div className="text-2xl lg:text-3xl font-bold text-gray-900">{metrics.trainerStats?.total_trainers_overall || 0}</div> {/* Changed value source */}
                 <div className="flex items-center text-sm">
-                <span className="text-green-600 font-medium">{metrics.trainerStats?.active_trainers || 0} active</span>
+                <span className="text-green-600 font-medium">{metrics.trainerStats?.total_trainers_overall || 0} total</span> {/* Changed value source and label */}
                 <span className="text-gray-400 mx-2">•</span>
                 <span className="text-blue-600 font-medium">Avg: {metrics.trainerStats?.avg_satisfaction || 0}/5</span>
                 </div>
                 <div className="flex items-center text-xs text-gray-500">
                 <Calendar className="w-3 h-3 mr-1" />
-                {/* Change from total_sessions to weekly_classes */}
-                <span>Sessions: {metrics.trainerStats?.weekly_classes || 0}</span>
+                <span>Kelas Total: {metrics.trainerStats?.total_classes_overall || 0}</span> {/* Changed value source and label */}
                 </div>
                 </div>
                 </div>
@@ -353,7 +350,7 @@ const Dashboard: React.FC = () => {
                     </div>
                   </div>
                   <div className="space-y-3">
-                    <div className="text-3xl font-bold text-gray-900 mb-2">92</div>
+                    <div className="text-3xl font-bold text-gray-900">92</div>
                     <div className="space-y-2">
                       <div className="flex justify-between text-sm">
                         <span className="text-gray-600">Equipment Uptime</span>

@@ -27,8 +27,8 @@ export interface TrainerPerformanceData {
 }
 
 export interface TrainerStats {
-  weekly_classes: number
-  active_trainers: number
+  total_classes_overall: number // Mengganti weekly_classes
+  total_trainers_overall: number // Mengganti active_trainers
   high_engagement_classes: number
   avg_satisfaction: number
 }

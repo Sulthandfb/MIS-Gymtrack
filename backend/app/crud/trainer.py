@@ -26,19 +26,19 @@ def get_trainers(db: Session, skip: int = 0, limit: int = 100):
 async def get_trainer_performance_data(db: Session):
     current_date_sql = func.current_date()
 
-    # Subquery: jumlah kelas mingguan yang dijadwalkan untuk tiap trainer (minggu ini)
-    weekly_classes_per_trainer_subquery = (
-        db.query(
-            ClassSchedule.trainer_id,
-            func.count(ClassSchedule.schedule_id).label("total_scheduled_classes")
-        )
-        .filter(
-            extract("week", ClassSchedule.schedule_date) == extract("week", current_date_sql),
-            extract("year", ClassSchedule.schedule_date) == extract("year", current_date_sql)
-        )
-        .group_by(ClassSchedule.trainer_id)
-        .subquery()
+    # Hitung total kelas keseluruhan (mengganti weekly_classes)
+    total_classes_overall_query = (
+        db.query(func.count(ClassSchedule.schedule_id))
+        .scalar()
     )
+    total_classes_overall = total_classes_overall_query if total_classes_overall_query is not None else 0
+
+    # Hitung total trainer keseluruhan (mengganti active_trainers)
+    total_trainers_overall_query = (
+        db.query(func.count(Trainer.trainer_id))
+        .scalar()
+    )
+    total_trainers_overall = total_trainers_overall_query if total_trainers_overall_query is not None else 0
 
     # Subquery: rata-rata feedback tiap trainer
     avg_satisfaction_per_trainer = (
@@ -54,6 +54,9 @@ async def get_trainer_performance_data(db: Session):
     )
 
     # Jumlah trainer aktif (yang mengajar minimal 1 kelas minggu ini)
+    # Anda mungkin ingin menyimpan ini jika "active_trainers" masih relevan di bagian lain,
+    # atau menghapusnya jika hanya total keseluruhan yang dibutuhkan.
+    # Untuk tujuan demo, saya pertahankan tetapi nilainya tidak lagi dikembalikan ke frontend di 'stats'.
     active_trainer_count_query = (
         db.query(func.count(func.distinct(ClassSchedule.trainer_id))).filter(
             extract("week", ClassSchedule.schedule_date) == extract("week", func.current_date()),
@@ -281,8 +284,8 @@ async def get_trainer_performance_data(db: Session):
     # Return response lengkap ke frontend
     return {
         "stats": {
-            "weekly_classes": db.query(func.sum(weekly_classes_per_trainer_subquery.c.total_scheduled_classes)).scalar() or 0,
-            "active_trainers": active_trainer_count_query,
+            "total_classes_overall": total_classes_overall, # Menggunakan nilai total yang baru
+            "total_trainers_overall": total_trainers_overall, # Menggunakan nilai total yang baru
             "high_engagement_classes": sum(1 for t in performance_data if t["feedback"] >= 4.5),
             "avg_satisfaction": round(db.query(func.avg(avg_satisfaction_per_trainer.c.avg_satisfaction)).scalar() or 0.0, 2)
         },

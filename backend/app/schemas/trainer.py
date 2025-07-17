@@ -1,4 +1,3 @@
-# backend/app/schemas/trainer.py
 from pydantic import BaseModel
 from typing import Optional, List # Pastikan List ada di sini
 from datetime import date, time # Tambahkan time untuk jadwal
@@ -43,8 +42,8 @@ class TrainerPerformance(BaseModel):
 
 # --- Model Baru untuk Dashboard Data ---
 class TrainerStats(BaseModel):
-    weekly_classes: int
-    active_trainers: int
+    total_classes_overall: int # Mengganti weekly_classes
+    total_trainers_overall: int # Mengganti active_trainers
     high_engagement_classes: int
     avg_satisfaction: float
 
@@ -71,18 +70,18 @@ class TrainerCourseComparisonData(BaseModel):
     online: int
 
 class TrainerInsightItem(BaseModel):
-    icon_name: str
+    icon_name: Optional[str] = None
     title: str
     message: str
     type: str
-    color: str
+    color: Optional[str] = None
     recommendation: Optional[str] = None
 
 class TrainerAlertItem(BaseModel):
-    icon_name: str
+    icon_name: Optional[str] = None
     title: str
     message: str
-    action: str
+    action: Optional[str] = None
     priority: str
     recommendation: Optional[str] = None
 

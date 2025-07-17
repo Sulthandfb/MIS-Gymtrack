@@ -238,15 +238,15 @@ export default function TrainerDashboard() {
               {/* Stats Cards */}
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 lg:gap-6">
                 <StatCard
-                  title="Jumlah Kelas Mingguan"
-                  value={stats.weekly_classes}
+                  title="Jumlah Kelas Total Keseluruhan" // Changed title
+                  value={stats.total_classes_overall} // Changed value source
                   icon={Calendar}
                   trend={{ value: 1.6, isPositive: true }}
                   color="blue"
                 />
                 <StatCard
-                  title="Trainer Aktif"
-                  value={stats.active_trainers}
+                  title="Jumlah Trainer Keseluruhan" // Changed title
+                  value={stats.total_trainers_overall} // Changed value source
                   icon={UserPlus}
                   trend={{ value: 2, isPositive: true }}
                   color="orange"
