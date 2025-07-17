@@ -31,13 +31,11 @@ import {
   Bar,
 } from "recharts"
 import { AppSidebar } from "@/components/Sidebar"
-import { StatCard } from "@/components/StatCard" // Pastikan ini mengarah ke file StatCard.tsx yang Anda berikan
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-
 import type {
   FinancialSummary,
   IncomeVsExpenseData,
@@ -97,7 +95,6 @@ export default function FinanceDashboard() {
         fetchRecentTransactions(10),
         fetchFinanceAIInsights(),
       ])
-
       setFinancialSummary(summary)
       setIncomeVsExpenseData(incomeVsExpenses)
       setIncomeBreakdownData(incomeBreakdown)
@@ -174,7 +171,7 @@ export default function FinanceDashboard() {
     } else if (activeTab === "expenses" && !expenseAnalysis) {
       loadExpenseData()
     }
-  }, [activeTab, incomeAnalysis, expenseAnalysis]) // Added dependencies for clarity
+  }, [activeTab, incomeAnalysis, expenseAnalysis])
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("id-ID", {
@@ -228,7 +225,6 @@ export default function FinanceDashboard() {
   return (
     <div className="flex h-screen bg-[#F7F8FA] font-sans text-gray-800 overflow-hidden">
       <AppSidebar />
-
       <main className="ml-0 lg:ml-64 flex-1 flex flex-col min-h-0">
         {/* Header */}
         <header className="bg-white border-b border-gray-200 px-4 lg:px-6 py-4 flex items-center justify-between sticky top-0 z-10">
@@ -245,7 +241,7 @@ export default function FinanceDashboard() {
             </Button>
             <Button
               variant="outline"
-              className="border border-gray-300 text-gray-700 font-semibold py-2 px-3 lg:px-4 rounded-lg flex items-center gap-2 hover:bg-gray-50 text-xs lg:text-sm bg-transparent"
+              className="border border-gray-300 text-gray-700 font-semibold py-2 px-3 lg:px-4 rounded-lg flex items-center gap-2 hover:bg-gray-50 text-xs lg:text-sm bg-white"
             >
               <Download className="w-4 h-4" />
               <span className="hidden sm:inline">Export Data</span>
@@ -255,51 +251,96 @@ export default function FinanceDashboard() {
 
         <div className="p-4 lg:p-6 flex-1 overflow-y-auto min-h-0">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-3 mb-6">
-              <TabsTrigger value="overview">Overview</TabsTrigger>
-              <TabsTrigger value="income">Income</TabsTrigger>
-              <TabsTrigger value="expenses">Expenses</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-3 mb-6 bg-white border border-gray-200 rounded-lg shadow-sm p-1">
+              <TabsTrigger
+                value="overview"
+                className="data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-sm rounded-md text-gray-700 hover:text-blue-600 transition-colors"
+              >
+                Overview
+              </TabsTrigger>
+              <TabsTrigger
+                value="income"
+                className="data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-sm rounded-md text-gray-700 hover:text-blue-600 transition-colors"
+              >
+                Income
+              </TabsTrigger>
+              <TabsTrigger
+                value="expenses"
+                className="data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-sm rounded-md text-gray-700 hover:text-blue-600 transition-colors"
+              >
+                Expenses
+              </TabsTrigger>
             </TabsList>
 
             {/* Overview Tab */}
-            <TabsContent value="overview" className="space-y-6">
+            <TabsContent value="overview" className="space-y-4 lg:space-y-6">
               <div className="grid grid-cols-12 gap-4 lg:gap-6">
                 {/* Left & Center Column */}
                 <div className="col-span-12 xl:col-span-8 space-y-4 lg:space-y-6">
                   {/* Financial Summary Cards */}
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 lg:gap-6">
-                    <StatCard
-                      title="Profit Margin"
-                      value={`${financialSummary?.profit_margin?.toFixed(1) ?? "0.0"}%`}
-                      icon={Target}
-                      color="blue" // Menggunakan 'blue' dari StatCardProps
-                      trend={financialSummary?.profit_margin_trend !== undefined ? {
-                        value: financialSummary.profit_margin_trend,
-                        isPositive: financialSummary.profit_margin_trend >= 0,
-                      } : undefined}
-                    />
+                    <div className="bg-white p-3 lg:p-4 rounded-lg shadow-sm">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="text-xs lg:text-sm font-medium text-gray-600">Profit Margin</div>
+                        <Target className="w-4 lg:w-5 h-4 lg:h-5 text-gray-400" />
+                      </div>
+                      <div className="text-xl lg:text-3xl font-bold text-gray-900">
+                        {`${financialSummary?.profit_margin?.toFixed(1) ?? "0.0"}%`}
+                      </div>
+                      <div className="flex items-center text-xs text-blue-600 mt-1">
+                        <TrendingUp className="w-3 lg:w-4 h-3 lg:h-4 mr-1" />
+                        <span className="text-xs">
+                          {financialSummary?.profit_margin_trend !== undefined
+                            ? `${financialSummary.profit_margin_trend >= 0 ? "+" : ""}${financialSummary.profit_margin_trend.toFixed(1)}%`
+                            : "N/A"}
+                        </span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-1 mt-2 lg:mt-3">
+                        <div className="bg-blue-500 h-1 rounded-full" style={{ width: "75%" }}></div>
+                      </div>
+                    </div>
 
-                    <StatCard
-                      title="Total Income"
-                      value={financialSummary ? formatCompactCurrency(financialSummary.total_income) : "Rp 0"}
-                      icon={TrendingUp}
-                      color="emerald" // Menggunakan 'emerald' dari StatCardProps
-                      trend={financialSummary?.income_trend !== undefined ? {
-                        value: financialSummary.income_trend,
-                        isPositive: financialSummary.income_trend >= 0,
-                      } : undefined}
-                    />
+                    <div className="bg-white p-3 lg:p-4 rounded-lg shadow-sm">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="text-xs lg:text-sm font-medium text-gray-600">Total Income</div>
+                        <TrendingUp className="w-4 lg:w-5 h-4 lg:h-5 text-gray-400" />
+                      </div>
+                      <div className="text-xl lg:text-3xl font-bold text-gray-900">
+                        {financialSummary ? formatCompactCurrency(financialSummary.total_income) : "Rp 0"}
+                      </div>
+                      <div className="flex items-center text-xs text-emerald-600 mt-1">
+                        <TrendingUp className="w-3 lg:w-4 h-3 lg:h-4 mr-1" />
+                        <span className="text-xs">
+                          {financialSummary?.income_trend !== undefined
+                            ? `${financialSummary.income_trend >= 0 ? "+" : ""}${financialSummary.income_trend.toFixed(1)}%`
+                            : "N/A"}
+                        </span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-1 mt-2 lg:mt-3">
+                        <div className="bg-emerald-500 h-1 rounded-full" style={{ width: "85%" }}></div>
+                      </div>
+                    </div>
 
-                    <StatCard
-                      title="Total Expenses"
-                      value={financialSummary ? formatCompactCurrency(financialSummary.total_expenses) : "Rp 0"}
-                      icon={TrendingDown}
-                      color="orange" // Menggunakan 'orange' dari StatCardProps
-                      trend={financialSummary?.expense_trend !== undefined ? {
-                        value: financialSummary.expense_trend,
-                        isPositive: financialSummary.expense_trend <= 0, // Expenses trend is positive when going down
-                      } : undefined}
-                    />
+                    <div className="bg-white p-3 lg:p-4 rounded-lg shadow-sm">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="text-xs lg:text-sm font-medium text-gray-600">Total Expenses</div>
+                        <TrendingDown className="w-4 lg:w-5 h-4 lg:h-5 text-gray-400" />
+                      </div>
+                      <div className="text-xl lg:text-3xl font-bold text-gray-900">
+                        {financialSummary ? formatCompactCurrency(financialSummary.total_expenses) : "Rp 0"}
+                      </div>
+                      <div className="flex items-center text-xs text-orange-600 mt-1">
+                        <TrendingDown className="w-3 lg:w-4 h-3 lg:h-4 mr-1" />
+                        <span className="text-xs">
+                          {financialSummary?.expense_trend !== undefined
+                            ? `${financialSummary.expense_trend >= 0 ? "+" : ""}${financialSummary.expense_trend.toFixed(1)}%`
+                            : "N/A"}
+                        </span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-1 mt-2 lg:mt-3">
+                        <div className="bg-orange-500 h-1 rounded-full" style={{ width: "65%" }}></div>
+                      </div>
+                    </div>
                   </div>
 
                   {/* Income vs Expenses Chart */}
@@ -435,18 +476,18 @@ export default function FinanceDashboard() {
                     <div className="overflow-x-auto">
                       <Table>
                         <TableHeader>
-                          <TableRow>
-                            <TableHead>Date</TableHead>
-                            <TableHead>Type</TableHead>
-                            <TableHead>Category</TableHead>
-                            <TableHead>Amount</TableHead>
-                            <TableHead>Payment</TableHead>
-                            <TableHead>Status</TableHead>
+                          <TableRow className="bg-gray-50">
+                            <TableHead className="font-semibold text-gray-900">Date</TableHead>
+                            <TableHead className="font-semibold text-gray-900">Type</TableHead>
+                            <TableHead className="font-semibold text-gray-900">Category</TableHead>
+                            <TableHead className="font-semibold text-gray-900">Amount</TableHead>
+                            <TableHead className="font-semibold text-gray-900">Payment</TableHead>
+                            <TableHead className="font-semibold text-gray-900">Status</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
                           {recentTransactions.map((transaction) => (
-                            <TableRow key={transaction.id}>
+                            <TableRow key={transaction.id} className="hover:bg-gray-50">
                               <TableCell className="text-sm">
                                 {new Date(transaction.date).toLocaleDateString("id-ID")}
                               </TableCell>
@@ -455,8 +496,8 @@ export default function FinanceDashboard() {
                                   variant={transaction.type === "income" ? "default" : "destructive"}
                                   className={
                                     transaction.type === "income"
-                                      ? "bg-green-100 text-green-800"
-                                      : "bg-red-100 text-red-800"
+                                      ? "bg-emerald-100 text-emerald-800 border-emerald-200"
+                                      : "bg-red-100 text-red-800 border-red-200"
                                   }
                                 >
                                   {transaction.type === "income" ? "Income" : "Expense"}
@@ -464,14 +505,14 @@ export default function FinanceDashboard() {
                               </TableCell>
                               <TableCell className="text-sm">{transaction.category}</TableCell>
                               <TableCell
-                                className={`font-medium ${transaction.type === "income" ? "text-green-600" : "text-red-600"}`}
+                                className={`font-medium ${transaction.type === "income" ? "text-emerald-600" : "text-red-600"}`}
                               >
                                 {transaction.type === "income" ? "+" : "-"}
                                 {formatCurrency(transaction.amount)}
                               </TableCell>
                               <TableCell className="text-sm capitalize">{transaction.payment_method}</TableCell>
                               <TableCell>
-                                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                                <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">
                                   {transaction.status}
                                 </Badge>
                               </TableCell>
@@ -490,7 +531,7 @@ export default function FinanceDashboard() {
                       <Lightbulb className="w-5 h-5" />
                       <h3 className="text-lg font-semibold">AI BUSINESS ADVISOR</h3>
                     </div>
-                    <div className="space-y-4 max-h-96 overflow-y-auto custom-scrollbar">
+                    <div className="space-y-4 max-h-96 overflow-y-auto">
                       {aiInsights.map((insight) => (
                         <div
                           key={insight.id}
@@ -502,9 +543,9 @@ export default function FinanceDashboard() {
                                 insight.type === "recommendation"
                                   ? "bg-blue-500/20"
                                   : insight.type === "prediction"
-                                    ? "bg-emerald-500/20" // Changed to emerald
+                                    ? "bg-emerald-500/20"
                                     : insight.type === "opportunity"
-                                      ? "bg-orange-500/20" // Changed to orange
+                                      ? "bg-orange-500/20"
                                       : "bg-red-500/20"
                               }`}
                             >
@@ -541,42 +582,64 @@ export default function FinanceDashboard() {
             </TabsContent>
 
             {/* Income Tab */}
-            <TabsContent value="income" className="space-y-6">
+            <TabsContent value="income" className="space-y-4 lg:space-y-6">
               {incomeAnalysis ? (
                 <div className="grid grid-cols-12 gap-4 lg:gap-6">
                   <div className="col-span-12 xl:col-span-8 space-y-4 lg:space-y-6">
-                    {/* Income Summary Cards using StatCard */}
+                    {/* Income Summary Cards */}
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 lg:gap-6">
-                      <StatCard
-                        title="Total Income Bulan Ini"
-                        value={formatCompactCurrency(incomeAnalysis.current_month_total)}
-                        icon={DollarSign}
-                        color="emerald" // Menggunakan 'emerald' dari StatCardProps
-                        trend={incomeAnalysis.growth_percentage !== undefined ? {
-                            value: incomeAnalysis.growth_percentage,
-                            isPositive: incomeAnalysis.growth_percentage >= 0,
-                        } : undefined}
-                      />
+                      <div className="bg-white p-3 lg:p-4 rounded-lg shadow-sm">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="text-xs lg:text-sm font-medium text-gray-600">Total Income Bulan Ini</div>
+                          <DollarSign className="w-4 lg:w-5 h-4 lg:h-5 text-gray-400" />
+                        </div>
+                        <div className="text-xl lg:text-3xl font-bold text-gray-900">
+                          {formatCompactCurrency(incomeAnalysis.current_month_total)}
+                        </div>
+                        <div className="flex items-center text-xs text-emerald-600 mt-1">
+                          <TrendingUp className="w-3 lg:w-4 h-3 lg:h-4 mr-1" />
+                          <span className="text-xs">
+                            {incomeAnalysis.growth_percentage !== undefined
+                              ? `${incomeAnalysis.growth_percentage >= 0 ? "+" : ""}${incomeAnalysis.growth_percentage.toFixed(1)}%`
+                              : "N/A"}
+                          </span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-1 mt-2 lg:mt-3">
+                          <div className="bg-emerald-500 h-1 rounded-full" style={{ width: "85%" }}></div>
+                        </div>
+                      </div>
 
-                      <StatCard
-                        title="Sumber Terbesar"
-                        value={incomeAnalysis.biggest_source.name}
-                        description={formatCompactCurrency(incomeAnalysis.biggest_source.amount)}
-                        icon={TrendingUp}
-                        color="blue" // Menggunakan 'blue' dari StatCardProps
-                      />
+                      <div className="bg-white p-3 lg:p-4 rounded-lg shadow-sm">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="text-xs lg:text-sm font-medium text-gray-600">Sumber Terbesar</div>
+                          <TrendingUp className="w-4 lg:w-5 h-4 lg:h-5 text-gray-400" />
+                        </div>
+                        <div className="text-xl lg:text-3xl font-bold text-gray-900">
+                          {incomeAnalysis.biggest_source.name}
+                        </div>
+                        <div className="flex items-center text-xs text-blue-600 mt-1">
+                          <span className="text-xs">{formatCompactCurrency(incomeAnalysis.biggest_source.amount)}</span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-1 mt-2 lg:mt-3">
+                          <div className="bg-blue-500 h-1 rounded-full" style={{ width: "70%" }}></div>
+                        </div>
+                      </div>
 
-                      <StatCard
-                        title="Growth Rate"
-                        value={`+${incomeAnalysis.growth_percentage}%`}
-                        description="Pertumbuhan bulanan"
-                        icon={TrendingUpIcon}
-                        color="purple" // Menggunakan 'purple' dari StatCardProps
-                        trend={incomeAnalysis.growth_percentage !== undefined ? {
-                            value: incomeAnalysis.growth_percentage,
-                            isPositive: incomeAnalysis.growth_percentage >= 0,
-                        } : undefined}
-                      />
+                      <div className="bg-white p-3 lg:p-4 rounded-lg shadow-sm">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="text-xs lg:text-sm font-medium text-gray-600">Growth Rate</div>
+                          <TrendingUpIcon className="w-4 lg:w-5 h-4 lg:h-5 text-gray-400" />
+                        </div>
+                        <div className="text-xl lg:text-3xl font-bold text-gray-900">
+                          +{incomeAnalysis.growth_percentage}%
+                        </div>
+                        <div className="flex items-center text-xs text-purple-600 mt-1">
+                          <span className="text-xs">Pertumbuhan bulanan</span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-1 mt-2 lg:mt-3">
+                          <div className="bg-purple-500 h-1 rounded-full" style={{ width: "80%" }}></div>
+                        </div>
+                      </div>
                     </div>
 
                     {/* Income Trend Chart */}
@@ -710,18 +773,18 @@ export default function FinanceDashboard() {
                       <div className="overflow-x-auto">
                         <Table>
                           <TableHeader>
-                            <TableRow>
-                              <TableHead>Date</TableHead>
-                              <TableHead>Category</TableHead>
-                              <TableHead>Description</TableHead>
-                              <TableHead>Amount</TableHead>
-                              <TableHead>Payment Method</TableHead>
-                              <TableHead>Status</TableHead>
+                            <TableRow className="bg-gray-50">
+                              <TableHead className="font-semibold text-gray-900">Date</TableHead>
+                              <TableHead className="font-semibold text-gray-900">Category</TableHead>
+                              <TableHead className="font-semibold text-gray-900">Description</TableHead>
+                              <TableHead className="font-semibold text-gray-900">Amount</TableHead>
+                              <TableHead className="font-semibold text-gray-900">Payment Method</TableHead>
+                              <TableHead className="font-semibold text-gray-900">Status</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
                             {incomeTransactions.map((transaction) => (
-                              <TableRow key={transaction.id}>
+                              <TableRow key={transaction.id} className="hover:bg-gray-50">
                                 <TableCell className="text-sm">
                                   {new Date(transaction.date).toLocaleDateString("id-ID")}
                                 </TableCell>
@@ -732,7 +795,10 @@ export default function FinanceDashboard() {
                                 </TableCell>
                                 <TableCell className="text-sm capitalize">{transaction.payment_method}</TableCell>
                                 <TableCell>
-                                  <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">
+                                  <Badge
+                                    variant="outline"
+                                    className="bg-emerald-50 text-emerald-700 border-emerald-200"
+                                  >
                                     {transaction.status}
                                   </Badge>
                                 </TableCell>
@@ -751,7 +817,7 @@ export default function FinanceDashboard() {
                         <TrendingUp className="w-5 h-5" />
                         <h3 className="text-lg font-semibold">AI INCOME INSIGHTS</h3>
                       </div>
-                      <div className="space-y-4 max-h-96 overflow-y-auto custom-scrollbar">
+                      <div className="space-y-4 max-h-96 overflow-y-auto">
                         {aiInsights
                           .filter(
                             (insight) => insight.category.includes("revenue") || insight.category.includes("income"),
@@ -785,35 +851,61 @@ export default function FinanceDashboard() {
             </TabsContent>
 
             {/* Expenses Tab */}
-            <TabsContent value="expenses" className="space-y-6">
+            <TabsContent value="expenses" className="space-y-4 lg:space-y-6">
               {expenseAnalysis ? (
                 <div className="grid grid-cols-12 gap-4 lg:gap-6">
                   <div className="col-span-12 xl:col-span-8 space-y-4 lg:space-y-6">
-                    {/* Expense Summary Cards using StatCard */}
+                    {/* Expense Summary Cards */}
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 lg:gap-6">
-                      <StatCard
-                        title="Total Expenses Bulan Ini"
-                        value={formatCompactCurrency(expenseAnalysis.current_month_total)}
-                        description="Pengeluaran bulanan"
-                        icon={CreditCard}
-                        color="orange" // Menggunakan 'orange' dari StatCardProps
-                      />
+                      <div className="bg-white p-3 lg:p-4 rounded-lg shadow-sm">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="text-xs lg:text-sm font-medium text-gray-600">Total Expenses Bulan Ini</div>
+                          <CreditCard className="w-4 lg:w-5 h-4 lg:h-5 text-gray-400" />
+                        </div>
+                        <div className="text-xl lg:text-3xl font-bold text-gray-900">
+                          {formatCompactCurrency(expenseAnalysis.current_month_total)}
+                        </div>
+                        <div className="flex items-center text-xs text-orange-600 mt-1">
+                          <span className="text-xs">Pengeluaran bulanan</span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-1 mt-2 lg:mt-3">
+                          <div className="bg-orange-500 h-1 rounded-full" style={{ width: "65%" }}></div>
+                        </div>
+                      </div>
 
-                      <StatCard
-                        title="Kategori Terbesar"
-                        value={expenseAnalysis.biggest_category.name}
-                        description={formatCompactCurrency(expenseAnalysis.biggest_category.amount)}
-                        icon={TrendingDown}
-                        color="orange" // Menggunakan 'orange' dari StatCardProps
-                      />
+                      <div className="bg-white p-3 lg:p-4 rounded-lg shadow-sm">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="text-xs lg:text-sm font-medium text-gray-600">Kategori Terbesar</div>
+                          <TrendingDown className="w-4 lg:w-5 h-4 lg:h-5 text-gray-400" />
+                        </div>
+                        <div className="text-xl lg:text-3xl font-bold text-gray-900">
+                          {expenseAnalysis.biggest_category.name}
+                        </div>
+                        <div className="flex items-center text-xs text-orange-600 mt-1">
+                          <span className="text-xs">
+                            {formatCompactCurrency(expenseAnalysis.biggest_category.amount)}
+                          </span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-1 mt-2 lg:mt-3">
+                          <div className="bg-orange-500 h-1 rounded-full" style={{ width: "70%" }}></div>
+                        </div>
+                      </div>
 
-                      <StatCard
-                        title="Fixed vs Variable"
-                        value={`${expenseAnalysis.fixed_vs_variable.fixed_percentage}% : ${expenseAnalysis.fixed_vs_variable.variable_percentage}%`}
-                        description="Fixed vs Variable ratio"
-                        icon={Target}
-                        color="purple" // Menggunakan 'purple' dari StatCardProps
-                      />
+                      <div className="bg-white p-3 lg:p-4 rounded-lg shadow-sm">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="text-xs lg:text-sm font-medium text-gray-600">Fixed vs Variable</div>
+                          <Target className="w-4 lg:w-5 h-4 lg:h-5 text-gray-400" />
+                        </div>
+                        <div className="text-xl lg:text-3xl font-bold text-gray-900">
+                          {`${expenseAnalysis.fixed_vs_variable.fixed_percentage}% : ${expenseAnalysis.fixed_vs_variable.variable_percentage}%`}
+                        </div>
+                        <div className="flex items-center text-xs text-purple-600 mt-1">
+                          <span className="text-xs">Fixed vs Variable ratio</span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-1 mt-2 lg:mt-3">
+                          <div className="bg-purple-500 h-1 rounded-full" style={{ width: "60%" }}></div>
+                        </div>
+                      </div>
                     </div>
 
                     {/* Fixed vs Variable Expenses Chart */}
@@ -945,18 +1037,18 @@ export default function FinanceDashboard() {
                       <div className="overflow-x-auto">
                         <Table>
                           <TableHeader>
-                            <TableRow>
-                              <TableHead>Date</TableHead>
-                              <TableHead>Category</TableHead>
-                              <TableHead>Description</TableHead>
-                              <TableHead>Amount</TableHead>
-                              <TableHead>Payment Method</TableHead>
-                              <TableHead>Status</TableHead>
+                            <TableRow className="bg-gray-50">
+                              <TableHead className="font-semibold text-gray-900">Date</TableHead>
+                              <TableHead className="font-semibold text-gray-900">Category</TableHead>
+                              <TableHead className="font-semibold text-gray-900">Description</TableHead>
+                              <TableHead className="font-semibold text-gray-900">Amount</TableHead>
+                              <TableHead className="font-semibold text-gray-900">Payment Method</TableHead>
+                              <TableHead className="font-semibold text-gray-900">Status</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
                             {expenseTransactions.map((transaction) => (
-                              <TableRow key={transaction.id}>
+                              <TableRow key={transaction.id} className="hover:bg-gray-50">
                                 <TableCell className="text-sm">
                                   {new Date(transaction.date).toLocaleDateString("id-ID")}
                                 </TableCell>
@@ -986,7 +1078,7 @@ export default function FinanceDashboard() {
                         <TrendingDown className="w-5 h-5" />
                         <h3 className="text-lg font-semibold">AI EXPENSES INSIGHTS</h3>
                       </div>
-                      <div className="space-y-4 max-h-96 overflow-y-auto custom-scrollbar">
+                      <div className="space-y-4 max-h-96 overflow-y-auto">
                         {aiInsights
                           .filter(
                             (insight) =>
@@ -1024,26 +1116,6 @@ export default function FinanceDashboard() {
           </Tabs>
         </div>
       </main>
-
-      {/* Moved custom-scrollbar styles to a global CSS file or component-specific CSS module for cleaner separation */}
-      {/* You should put these styles in a CSS file (e.g., globals.css or Dashboard.module.css) */}
-      {/* For example, in globals.css: */}
-      {/*
-      .custom-scrollbar::-webkit-scrollbar {
-        width: 4px;
-      }
-      .custom-scrollbar::-webkit-scrollbar-track {
-        background: rgba(255, 255, 255, 0.1);
-        border-radius: 2px;
-      }
-      .custom-scrollbar::-webkit-scrollbar-thumb {
-        background: rgba(255, 255, 255, 0.3);
-        border-radius: 2px;
-      }
-      .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-        background: rgba(255, 255, 255, 0.5);
-      }
-      */}
     </div>
   )
 }

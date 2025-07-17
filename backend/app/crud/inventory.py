@@ -1,10 +1,8 @@
 # backend/app/crud/inventory.py
-
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func, case, text, and_
 from datetime import datetime, date, timedelta
 from typing import List, Dict, Any, Optional, Tuple
-
 from app.models.inventory import (
     EquipmentCategory,
     Supplier,
@@ -118,7 +116,6 @@ def get_equipment_list(db: Session, status: Optional[str] = None, category_id: O
         query = query.filter(Equipment.category_id == category_id)
     if search_query:
         query = query.filter(Equipment.name.ilike(f"%{search_query}%"))
-    
     return query.offset(skip).limit(limit).all()
 
 def create_equipment(db: Session, equipment: EquipmentCreate):
@@ -129,21 +126,17 @@ def create_equipment(db: Session, equipment: EquipmentCreate):
     return db_equipment
 
 def update_equipment(db: Session, equipment_id: int, equipment: EquipmentUpdate, changed_by: Optional[str] = "System"):
-    db_equipment = db.query(Equipment).filter(Equipment.equipment_id == equipment_id).first()
+    db_equipment = db.query(Equipment).filter(Equipment.equipment.id == equipment_id).first()
     if db_equipment:
         old_status = db_equipment.status
         update_data = equipment.model_dump(exclude_unset=True)
-
         for key, value in update_data.items():
             setattr(db_equipment, key, value)
-
         db.commit()
         db.refresh(db_equipment)
-
         if 'status' in update_data and update_data['status'] != old_status:
             log_status_change(db, equipment_id, old_status, update_data['status'], changed_by, f"Status changed from {old_status} to {update_data['status']}")
-            
-    return db_equipment
+        return db_equipment
 
 def delete_equipment(db: Session, equipment_id: int):
     db_equipment = db.query(Equipment).filter(Equipment.equipment_id == equipment_id).first()
@@ -322,29 +315,43 @@ def delete_ai_recommendation(db: Session, recommendation_id: int):
         db.commit()
     return db_recommendation
 
-# --- Dashboard Summary Data (from the requirements) ---
+# --- Dashboard Summary Data ---
 def get_inventory_summary(db: Session) -> Dict[str, Any]:
     total_equipment = db.query(func.sum(Equipment.quantity)).scalar() or 0
     total_active = db.query(func.sum(Equipment.quantity)).filter(Equipment.status == 'Baik').scalar() or 0
     total_broken = db.query(func.sum(Equipment.quantity)).filter(Equipment.status == 'Rusak').scalar() or 0
     total_in_maintenance = db.query(func.sum(Equipment.quantity)).filter(Equipment.status == 'Dalam Perbaikan').scalar() or 0
     total_replacement_needed = db.query(func.sum(Equipment.quantity)).filter(Equipment.status == 'Perlu Diganti').scalar() or 0
-
     total_backup_stock = db.query(func.sum(BackupEquipment.quantity)).scalar() or 0
-
-    latest_ai_rec = db.query(AIInventoryRecommendation).order_by(AIInventoryRecommendation.timestamp.desc()).first()
     
-    total_equipment_value = db.query(func.sum(Equipment.purchase_price * Equipment.quantity)).scalar() or 0
+    # Fetch the latest AI recommendation without joined loads for the summary view
+    latest_ai_rec = db.query(AIInventoryRecommendation).order_by(AIInventoryRecommendation.timestamp.desc()).first()
 
+    total_equipment_value = db.query(func.sum(Equipment.purchase_price * Equipment.quantity)).scalar() or 0
     latest_ai_recommendation_data = None
     if latest_ai_rec:
-        latest_ai_rec_loaded = db.query(AIInventoryRecommendation).options(
-            joinedload(AIInventoryRecommendation.trigger_equipment_rel).joinedload(Equipment.category),
-            joinedload(AIInventoryRecommendation.recommended_category_rel)
-        ).filter(AIInventoryRecommendation.recommendation_id == latest_ai_rec.recommendation_id).first()
-        from app.schemas.inventory import AIInventoryRecommendation as AIInvRecSchema
-        latest_ai_recommendation_data = AIInvRecSchema.model_validate(latest_ai_rec_loaded).model_dump(mode='json')
-
+        # Manually construct the dictionary to explicitly set trigger_equipment and recommended_category to None
+        # This ensures the output matches the user's desired structure for the summary.
+        latest_ai_recommendation_data = {
+            "recommendation_id": latest_ai_rec.recommendation_id,
+            "timestamp": latest_ai_rec.timestamp.isoformat(),
+            "trigger_equipment_id": latest_ai_rec.trigger_equipment_id,
+            "trigger_event": latest_ai_rec.trigger_event,
+            "recommended_equipment_name": latest_ai_rec.recommended_equipment_name,
+            "recommended_category_id": latest_ai_rec.recommended_category_id,
+            "estimated_cost": float(latest_ai_rec.estimated_cost) if latest_ai_rec.estimated_cost is not None else None,
+            "current_profit_margin_percent": float(latest_ai_rec.current_profit_margin_percent) if latest_ai_rec.current_profit_margin_percent is not None else None,
+            "ai_reasoning": latest_ai_rec.ai_reasoning,
+            "ai_predicted_purchase_time": latest_ai_rec.ai_predicted_purchase_time,
+            "manager_decision": latest_ai_rec.manager_decision,
+            "decision_date": latest_ai_rec.decision_date.isoformat() if latest_ai_rec.decision_date else None,
+            "notes_manager": latest_ai_rec.notes_manager,
+            "contact_supplier_details": latest_ai_rec.contact_supplier_details,
+            "created_at": latest_ai_rec.created_at.isoformat(),
+            # Explicitly set these to None to match the user's desired output for the summary
+            "trigger_equipment": None,
+            "recommended_category": None
+        }
 
     return {
         "total_equipment": int(total_equipment),
@@ -372,14 +379,12 @@ def get_inventory_table_data(db: Session, skip: int = 0, limit: int = 100,
         Equipment.next_maintenance,
         Equipment.warranty_end
     ).join(EquipmentCategory, Equipment.category_id == EquipmentCategory.category_id)
-
     if status:
         query = query.filter(Equipment.status == status)
     if category_name:
         query = query.filter(EquipmentCategory.category_name.ilike(f"%{category_name}%"))
     if search_query:
         query = query.filter(Equipment.name.ilike(f"%{search_query}%"))
-
     return [
         {
             "equipment_id": row.equipment_id,
@@ -405,70 +410,113 @@ def get_usage_and_maintenance_trends(db: Session) -> Dict[str, Any]:
         return value
 
     # Tanggal log status alat (rusak)
-    min_log_date_dt = safe_date(db.query(func.min(EquipmentStatusLog.change_date)).scalar())
-    max_log_date_dt = safe_date(db.query(func.max(EquipmentStatusLog.change_date)).scalar())
+    # Query min and max change_date specifically for 'Rusak' status
+    min_log_date_dt = safe_date(db.query(func.min(EquipmentStatusLog.change_date)).filter(EquipmentStatusLog.new_status == 'Rusak').scalar())
+    max_log_date_dt = safe_date(db.query(func.max(EquipmentStatusLog.change_date)).filter(EquipmentStatusLog.new_status == 'Rusak').scalar())
 
-    start_date_broken = min_log_date_dt or date.today() - timedelta(days=365)
-    end_date_broken = max_log_date_dt or date.today()
+    broken_equipment_chart = []
+    if min_log_date_dt and max_log_date_dt:
+        start_date_broken = min_log_date_dt
+        end_date_broken = max_log_date_dt
 
-    if start_date_broken > end_date_broken:
-        start_date_broken = end_date_broken
+        # Ensure start_date is not after end_date, though unlikely with min/max
+        if start_date_broken > end_date_broken:
+            start_date_broken = end_date_broken
 
-    weekly_broken_data = db.execute(text(f"""
-        SELECT
-            TO_CHAR(change_date, 'IYYY-IW') as week_label,
-            COUNT(DISTINCT equipment_id) as broken_count
-        FROM equipment_status_log
-        WHERE new_status = 'Rusak' AND change_date BETWEEN :start_date AND :end_date
-        GROUP BY week_label
-        ORDER BY week_label
-    """), {"start_date": start_date_broken, "end_date": end_date_broken}).fetchall()
+        weekly_broken_data = db.execute(text(f"""
+            SELECT
+                TO_CHAR(change_date, 'IYYY-IW') as week_label,
+                COUNT(DISTINCT equipment_id) as broken_count
+            FROM equipment_status_log
+            WHERE new_status = 'Rusak' AND change_date BETWEEN :start_date AND :end_date
+            GROUP BY week_label
+            ORDER BY week_label
+        """), {"start_date": start_date_broken, "end_date": end_date_broken}).fetchall()
 
-    full_weeks_broken = {}
-    current_week = start_date_broken
-    while current_week <= end_date_broken:
-        iso_year, iso_week, _ = current_week.isocalendar()
-        week_label = f"{iso_year}-W{iso_week:02d}"
-        full_weeks_broken[week_label] = {"week": week_label, "broken_equipment": 0}
-        current_week += timedelta(weeks=1)
+        full_weeks_broken = {}
+        current_week = start_date_broken
+        # Add 6 days to ensure the last week is included if it's not a full week
+        while current_week <= end_date_broken + timedelta(days=6):
+            iso_year, iso_week, _ = current_week.isocalendar()
+            week_label = f"{iso_year}-W{iso_week:02d}"
+            full_weeks_broken[week_label] = {"week": week_label, "broken_equipment": 0}
+            current_week += timedelta(weeks=1) # Move to the next week
 
-    for row in weekly_broken_data:
-        week_label = row.week_label
-        if week_label in full_weeks_broken:
-            full_weeks_broken[week_label]["broken_equipment"] = row.broken_count
+        for row in weekly_broken_data:
+            week_label = row.week_label
+            if week_label in full_weeks_broken:
+                full_weeks_broken[week_label]["broken_equipment"] = row.broken_count
 
-    broken_equipment_chart = sorted(full_weeks_broken.values(), key=lambda x: x["week"])
+        broken_equipment_chart = sorted(full_weeks_broken.values(), key=lambda x: x["week"])
+
+    # Operational Equipment Trend (Monthly)
+    min_purchase_date_dt = safe_date(db.query(func.min(Equipment.purchase_date)).scalar())
+    max_purchase_date_dt = safe_date(db.query(func.max(Equipment.purchase_date)).scalar())
+
+    operational_equipment_chart = []
+    if min_purchase_date_dt and max_purchase_date_dt:
+        start_date_op = min_purchase_date_dt
+        end_date_op = max_purchase_date_dt
+
+        monthly_operational_data = db.execute(text(f"""
+            SELECT
+                TO_CHAR(purchase_date, 'YYYY-MM') as month_label,
+                SUM(quantity) as operational_count
+            FROM equipment
+            WHERE status = 'Baik' AND purchase_date BETWEEN :start_date AND :end_date
+            GROUP BY month_label
+            ORDER BY month_label
+        """), {"start_date": start_date_op, "end_date": end_date_op}).fetchall()
+
+        full_months_operational = {}
+        current_month = start_date_op.replace(day=1)
+        while current_month <= end_date_op.replace(day=1):
+            month_label = current_month.strftime('%Y-%m')
+            full_months_operational[month_label] = {"month": month_label, "operational_equipment": 0}
+            # Move to the next month
+            if current_month.month == 12:
+                current_month = current_month.replace(year=current_month.year + 1, month=1)
+            else:
+                current_month = current_month.replace(month=current_month.month + 1)
+
+        for row in monthly_operational_data:
+            month_label = row.month_label
+            if month_label in full_months_operational:
+                full_months_operational[month_label]["operational_equipment"] = int(row.operational_count)
+
+        operational_equipment_chart = sorted(full_months_operational.values(), key=lambda x: x["month"])
 
     # Data penggunaan alat
     min_usage_date = safe_date(db.query(func.min(EquipmentUsageLog.usage_date)).scalar())
     max_usage_date = safe_date(db.query(func.max(EquipmentUsageLog.usage_date)).scalar())
-
     start_usage = min_usage_date or date.today() - timedelta(days=365)
     end_usage = max_usage_date or date.today()
     if start_usage > end_usage:
         start_usage = end_usage
 
-    most_used_equipment = db.execute(text("""
-        SELECT
-            e.name as equipment_name,
-            SUM(eul.usage_count) as total_usage
-        FROM equipment_usage_log eul
-        JOIN equipment e ON eul.equipment_id = e.equipment_id
-        WHERE eul.usage_date BETWEEN :start_date AND :end_date
-        GROUP BY e.name
-        ORDER BY total_usage DESC
-    """), {"start_date": start_usage, "end_date": end_usage}).fetchall()
+    # If no usage data, return empty list for most_used_chart
+    most_used_chart = []
+    if min_usage_date and max_usage_date:
+        most_used_equipment = db.execute(text("""
+            SELECT
+                e.name as equipment_name,
+                SUM(eul.usage_count) as total_usage
+            FROM equipment_usage_log eul
+            JOIN equipment e ON eul.equipment_id = e.equipment_id
+            WHERE eul.usage_date BETWEEN :start_date AND :end_date
+            GROUP BY e.name
+            ORDER BY total_usage DESC
+        """), {"start_date": start_usage, "end_date": end_usage}).fetchall()
 
-    most_used_chart = [
-        {"name": row.equipment_name, "usage_count": int(row.total_usage)}
-        for row in most_used_equipment
-    ]
+        most_used_chart = [
+            {"name": row.equipment_name, "usage_count": int(row.total_usage)}
+            for row in most_used_equipment
+        ]
 
     # Log status terbaru
     recent_status_logs = db.query(EquipmentStatusLog).options(
         joinedload(EquipmentStatusLog.equipment_rel)
     ).order_by(EquipmentStatusLog.change_date.desc()).limit(20).all()
-
     formatted_status_logs = [{
         "log_id": log.log_id,
         "equipment_name": log.equipment_rel.name if log.equipment_rel else "N/A",
@@ -481,22 +529,21 @@ def get_usage_and_maintenance_trends(db: Session) -> Dict[str, Any]:
 
     return {
         "broken_equipment_trend": broken_equipment_chart,
+        "operational_equipment_trend": operational_equipment_chart, # NEW
         "most_used_equipment": most_used_chart,
         "recent_status_logs": formatted_status_logs
     }
 
-
 # --- Service for taking from backup (unchanged) ---
 def take_from_backup_stock(db: Session, equipment_id: int, quantity_to_take: int, changed_by: str = "Manager") -> Optional[Equipment]:
     backup_item = db.query(BackupEquipment).filter(BackupEquipment.equipment_id == equipment_id).first()
-    
+
     if not backup_item or backup_item.quantity < quantity_to_take:
         raise ValueError("Not enough stock in backup or backup item not found.")
-    
+
     backup_item.quantity -= quantity_to_take
     db.commit()
     db.refresh(backup_item)
-
     log_status_change(db, equipment_id, "N/A", "Taken from Backup", changed_by, f"Taken {quantity_to_take} unit(s) from backup stock.")
-    
+
     return get_equipment_by_id(db, equipment_id)

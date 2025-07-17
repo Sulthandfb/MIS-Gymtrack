@@ -63,7 +63,6 @@ export interface Equipment {
   notes?: string;
   created_at: string; // ISO string date-time
   updated_at: string; // ISO string date-time
-
   // Nested relationships from backend
   category?: EquipmentCategory;
   supplier?: Supplier;
@@ -110,7 +109,6 @@ export interface BackupEquipment {
   notes?: string;
   created_at: string;
   updated_at: string;
-
   equipment?: Equipment; // Nested relationship
 }
 
@@ -141,7 +139,6 @@ export interface EquipmentMaintenance {
   next_maintenance_date?: string; // YYYY-MM-DD string
   status: string; // Status of the maintenance record itself
   created_at: string;
-
   equipment?: Equipment; // Nested relationship
 }
 
@@ -174,7 +171,6 @@ export interface EquipmentStatusLog {
   changed_by?: string;
   change_reason?: string;
   change_date: string; // ISO string date-time
-
   equipment?: Equipment; // Nested relationship
 }
 
@@ -182,6 +178,13 @@ export interface EquipmentStatusLogCreate {
   equipment_id: number;
   old_status?: string;
   new_status: string;
+  changed_by?: string;
+  change_reason?: string;
+}
+
+export interface EquipmentStatusLogUpdate {
+  old_status?: string;
+  new_status?: string;
   changed_by?: string;
   change_reason?: string;
 }
@@ -195,7 +198,6 @@ export interface EquipmentUsageLog {
   maintenance_needed: boolean;
   notes?: string;
   created_at: string;
-
   equipment?: Equipment; // Nested relationship
 }
 
@@ -232,7 +234,6 @@ export interface AIInventoryRecommendation {
   notes_manager?: string;
   contact_supplier_details?: string;
   created_at: string;
-
   trigger_equipment?: Equipment; // Nested relationship
   recommended_category?: EquipmentCategory; // Nested relationship
 }
@@ -261,6 +262,7 @@ export interface AIInventoryRecommendationUpdate {
 }
 
 // --- Dashboard Specific Types ---
+
 export interface InventorySummary {
   total_equipment: number;
   total_active_equipment: number;
@@ -289,6 +291,11 @@ export interface BrokenEquipmentTrend {
   broken_equipment: number;
 }
 
+export interface OperationalEquipmentTrend {
+  month: string; // e.g., "2024-01"
+  operational_equipment: number;
+}
+
 export interface MostUsedEquipment {
   name: string; // Equipment name
   usage_count: number;
@@ -306,6 +313,7 @@ export interface RecentStatusLog {
 
 export interface InventoryTrends {
   broken_equipment_trend: BrokenEquipmentTrend[];
+  operational_equipment_trend: OperationalEquipmentTrend[]; // NEW
   most_used_equipment: MostUsedEquipment[];
   recent_status_logs: RecentStatusLog[];
 }

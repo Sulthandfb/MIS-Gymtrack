@@ -1,6 +1,6 @@
-// components/StatCard.tsx
 import { Card, CardContent } from "@/components/ui/card"
 import type { LucideIcon } from "lucide-react"
+import { TrendingUp, TrendingDown } from 'lucide-react' // Import TrendingUp and TrendingDown
 
 interface StatCardProps {
   title: string
@@ -11,18 +11,16 @@ interface StatCardProps {
     isPositive: boolean
   }
   color?: "emerald" | "orange" | "blue" | "purple"
-  description?: string // <--- TAMBAHKAN BARIS INI
+  description?: string
 }
 
 export function StatCard({ title, value, icon: Icon, trend, color = "emerald", description }: StatCardProps) {
-  // Pastikan 'description' juga ada di destructuring props di sini
   const colorClasses = {
     emerald: "bg-emerald-500 text-white",
     orange: "bg-orange-500 text-white",
     blue: "bg-blue-500 text-white",
     purple: "bg-purple-500 text-white",
   }
-
   return (
     <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
       <CardContent className="p-6">
@@ -36,7 +34,6 @@ export function StatCard({ title, value, icon: Icon, trend, color = "emerald", d
                 {trend.value}% dari bulan lalu
               </p>
             )}
-            {/* Tampilkan deskripsi jika ada */}
             {description && (
               <p className="text-sm text-gray-500 mt-1">{description}</p>
             )}
