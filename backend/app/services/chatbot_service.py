@@ -4,6 +4,7 @@ from datetime import datetime, date, timedelta
 from typing import Dict, List, Any, Optional, Tuple
 import json
 import re
+import decimal # Tambahkan import ini
 
 from app.services.groq_client import generate_groq_insight
 from app.models.member import Member, MemberGoal
@@ -185,11 +186,8 @@ class ChatbotService:
         last_6_months_data = []
         for i in range(6):
             # Calculate month_date correctly to stay within data_year
-            month_delta = i # For consistency in month calculation
-            
-            # Start from current_month and go back, ensuring we stay in data_year
-            target_month = (current_month - month_delta - 1) % 12 + 1
-            target_year = data_year if (current_month - month_delta) > 0 else data_year - 1 # Adjust year if needed
+            target_month = (current_month - i - 1) % 12 + 1
+            target_year = data_year if (current_month - i - 1) >= 0 else data_year - 1 # Adjust year if needed
             
             # Create a date object for the first day of the target month
             # Handle cases where target_month is 0 or negative after modulo
@@ -351,6 +349,12 @@ class ChatbotService:
     def create_context_prompt(self, message: str, intent: str, context_data: Dict, conversation_history: List[str]) -> str:
         """Create context-aware prompt for AI"""
         
+        # Custom JSON encoder for Decimal objects
+        def json_encoder_default(obj):
+            if isinstance(obj, decimal.Decimal):
+                return float(obj)
+            raise TypeError(repr(obj) + " is not JSON serializable")
+
         # Add a note about the data year if finance data is present
         data_year_note = ""
         if 'finance' in context_data and 'data_year' in context_data['finance']:
@@ -370,7 +374,7 @@ Riwayat percakapan terbaru:
 {chr(10).join(conversation_history[-5:]) if conversation_history else "Tidak ada riwayat percakapan."}
 
 Data kontekstual internal gym yang tersedia:{data_year_note}
-{json.dumps(context_data, indent=2, ensure_ascii=False)}
+{json.dumps(context_data, indent=2, ensure_ascii=False, default=json_encoder_default)} # Tambahkan default=json_encoder_default
 
 Berdasarkan pertanyaan pengguna, intent, riwayat percakapan, dan data kontekstual yang tersedia, berikan respons yang:
 1.  **Ramah, profesional, dan relevan:** Pastikan nada dan isi respons sesuai dengan persona asisten AI gym.

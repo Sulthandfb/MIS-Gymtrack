@@ -1,12 +1,18 @@
-
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, desc
 from datetime import datetime, timedelta
 from typing import List, Optional
 import json
+import decimal # Tambahkan import ini
 
 from app.models.chatbot import ChatSession, ChatMessage
 from app.schemas.chatbot import ChatSessionCreate, ChatMessageCreate
+
+# Fungsi default encoder untuk menangani tipe Decimal
+def json_encoder_default(obj):
+    if isinstance(obj, decimal.Decimal):
+        return float(obj)
+    raise TypeError(repr(obj) + " is not JSON serializable")
 
 def create_chat_session(db: Session, session: ChatSessionCreate) -> ChatSession:
     db_session = ChatSession(**session.dict())
@@ -32,7 +38,8 @@ def get_or_create_session(db: Session, user_id: Optional[str] = None) -> ChatSes
     return create_chat_session(db, new_session)
 
 def create_chat_message(db: Session, message: ChatMessageCreate, session_id: int, context_data: Optional[dict] = None) -> ChatMessage:
-    context_json = json.dumps(context_data) if context_data else None
+    # Gunakan custom encoder saat mendumps context_data
+    context_json = json.dumps(context_data, default=json_encoder_default) if context_data else None
     db_message = ChatMessage(
         session_id=session_id,
         content=message.content,
