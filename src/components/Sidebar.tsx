@@ -3,7 +3,7 @@ import {
   Users,
   UserCheck,
   ShoppingCart,
-  PieChartIcon as ChartPieIcon,
+  // PieChartIcon as ChartPieIcon, // You can remove this import if ChartPieIcon is no longer used elsewhere
   HomeIcon,
   CircleEllipsisIcon as ChatBubbleOvalLeftEllipsisIcon,
   ArchiveIcon as ArchiveBoxIcon,
@@ -11,8 +11,10 @@ import {
   SparklesIcon,
   CogIcon as Cog6ToothIcon,
   ArrowRightIcon as ArrowRightOnRectangleIcon,
-  Brain, // Added Brain import
+  Brain,
 } from "lucide-react"
+
+import GymTrackLogo from '@/assets/gymtrack-logo.svg' // Import logo Anda
 
 const menuItems = [
   { title: "Dashboard", url: "/dashboard", icon: HomeIcon },
@@ -36,8 +38,9 @@ export function AppSidebar() {
       {/* Header */}
       <div className="p-6 border-b border-gray-200">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 bg-blue-600 rounded-lg flex items-center justify-center">
-            <ChartPieIcon className="w-5 h-5 text-white" />
+          {/* Mengubah ukuran logo menjadi w-8 h-8 */}
+          <div className="w-9 h-9 flex items-center justify-center">
+            <img src={GymTrackLogo} alt="GymTrack Logo" className="w-8 h-8 object-contain" />
           </div>
           <span className="text-xl font-bold text-gray-900">GymTrack</span>
         </div>
