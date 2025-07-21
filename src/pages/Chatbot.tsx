@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { AppSidebar } from "@/components/Sidebar"
-import { Brain, Send, ArrowLeft, Star, Trash, Mic, Paperclip, Plus, AlertCircle, Wifi, WifiOff } from "lucide-react"
+import { Brain, Send, ArrowLeft, Star, Trash, Mic, Paperclip, Plus, AlertCircle, Wifi, WifiOff, MessageSquare, Sparkles, Menu } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { sendChatMessage, getChatHistory, getOrCreateSession, testConnection, API_CONFIG } from "@/services/chatbot-api"
 import type { ChatSession } from "@/types/chatbot"
@@ -38,6 +38,7 @@ export default function Chatbot() {
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [connectionStatus, setConnectionStatus] = useState<"connected" | "disconnected" | "checking">("checking")
+  const [sidebarOpen, setSidebarOpen] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -194,8 +195,7 @@ export default function Chatbot() {
       setMessages([
         {
           id: "1",
-          content:
-            "Halo! Saya GymTrack AI, asisten virtual yang siap membantu Anda menganalisis data gym. Apa yang ingin Anda ketahui hari ini?",
+          content: "Halo! Saya GymTrack AI, asisten virtual yang siap membantu Anda menganalisis data gym. Apa yang ingin Anda ketahui hari ini?",
           sender: "ai",
           timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
         },
@@ -220,67 +220,87 @@ export default function Chatbot() {
   }
 
   return (
-    <div className="flex h-screen bg-gray-100">
+    <div className="flex h-screen bg-[#F7F8FA] font-sans text-gray-800 overflow-hidden">
       {/* Sidebar */}
       <AppSidebar />
 
       {/* Main Chat Area */}
-      <div className="flex-1 flex flex-col lg:ml-64">
+      <main className="ml-0 lg:ml-64 flex-1 flex flex-col min-h-0">
         {/* Header */}
-        <div className="bg-white border-b border-gray-200 p-4 shadow-sm flex items-center justify-between">
+        <header className="bg-white border-b border-gray-200 px-4 lg:px-6 py-4 flex items-center justify-between sticky top-0 z-10">
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" className="text-gray-600 hover:bg-gray-100">
-              <ArrowLeft className="w-5 h-5" />
-              <span className="sr-only">Kembali</span>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="lg:hidden text-gray-600"
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+            >
+              <Menu className="w-5 h-5" />
             </Button>
-            <div className="flex items-center gap-2">
-              <div className="w-9 h-9 bg-blue-600 rounded-full flex items-center justify-center shadow-md">
+            <Button variant="ghost" size="icon" className="text-gray-600 hover:text-gray-800">
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 bg-blue-600 rounded-full flex items-center justify-center shadow-sm">
                 <Brain className="w-5 h-5 text-white" />
               </div>
-              <h1 className="text-xl font-bold text-gray-900">GymTrack AI</h1>
+              <div>
+                <h1 className="text-xl lg:text-2xl font-bold text-gray-900">GymTrack AI</h1>
+                <p className="text-gray-600 text-xs lg:text-sm hidden sm:block">
+                  Asisten virtual untuk analisis data gym
+                </p>
+              </div>
             </div>
             {currentSession && (
-              <span className="text-sm text-gray-500 hidden sm:block ml-2">Session: {currentSession.session_id}</span>
+              <span className="text-sm text-gray-500 hidden lg:block ml-2">
+                Session: {currentSession.session_id}
+              </span>
             )}
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" className="text-gray-600 hover:bg-gray-100 hover:text-yellow-500">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-gray-600 hover:text-yellow-600"
+            >
               <Star className="w-5 h-5" />
-              <span className="sr-only">Simpan Chat</span>
-            </Button>
-            <Button variant="ghost" size="icon" className="text-gray-600 hover:bg-gray-100 hover:text-red-500">
-              <Trash className="w-5 h-5" />
-              <span className="sr-only">Hapus Chat</span>
             </Button>
             <Button
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium shadow-md transition-all duration-200 ease-in-out hover:scale-[1.02]"
+              variant="ghost"
+              size="icon"
+              className="text-gray-600 hover:text-red-600"
+            >
+              <Trash className="w-5 h-5" />
+            </Button>
+            <Button
               onClick={handleNewChat}
               disabled={isLoading || connectionStatus !== "connected"}
+              className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded-lg shadow-sm text-sm"
             >
               <Plus className="w-4 h-4 mr-2" />
               Chat Baru
             </Button>
           </div>
-        </div>
+        </header>
 
         {/* Connection Status & Error Display */}
-        <div className="p-4 bg-white border-b border-gray-200">
+        <div className="bg-white border-b border-gray-200 px-4 lg:px-6 py-3">
           <div className="flex items-center gap-2 text-sm">
             {connectionStatus === "connected" && (
               <>
-                <Wifi className="w-4 h-4 text-green-500" />
+                <Wifi className="w-4 h-4 text-green-600" />
                 <span className="text-green-600 font-medium">Terhubung</span>
               </>
             )}
             {connectionStatus === "disconnected" && (
               <>
-                <WifiOff className="w-4 h-4 text-red-500" />
+                <WifiOff className="w-4 h-4 text-red-600" />
                 <span className="text-red-600 font-medium">Terputus</span>
                 <Button
                   size="sm"
                   variant="outline"
                   onClick={handleRetryConnection}
-                  className="ml-auto bg-red-50 text-red-600 border-red-300 hover:bg-red-100 transition-colors duration-200"
+                  className="ml-auto border-red-600 text-red-600 hover:bg-red-600 hover:text-white"
                 >
                   Coba Lagi
                 </Button>
@@ -294,7 +314,7 @@ export default function Chatbot() {
             )}
           </div>
           {error && (
-            <div className="mt-3 bg-red-50 border border-red-200 rounded-lg p-3 flex items-center gap-2 text-red-700 shadow-sm">
+            <div className="mt-3 bg-red-50 border border-red-200 rounded-lg p-3 flex items-center gap-2 text-red-700">
               <AlertCircle className="h-4 w-4 flex-shrink-0" />
               <span className="text-sm">{error}</span>
             </div>
@@ -302,91 +322,92 @@ export default function Chatbot() {
         </div>
 
         {/* Messages */}
-        <ScrollArea className="flex-1 p-6 bg-gray-50">
-          <div className="w-full space-y-6">
-            {messages.map((message) => (
-              <div
-                key={message.id}
-                className={cn("flex gap-3", message.sender === "user" ? "justify-end" : "justify-start")}
-              >
-                {message.sender === "ai" && (
-                  <Avatar className="w-9 h-9 flex-shrink-0">
-                    <AvatarImage src="/placeholder.svg?height=36&width=36" alt="AI Avatar" />
-                    <AvatarFallback className="bg-blue-600 text-white text-sm font-semibold">AI</AvatarFallback>
-                  </Avatar>
-                )}
+        <div className="flex-1 p-4 lg:p-6 overflow-hidden">
+          <ScrollArea className="h-full">
+            <div className="space-y-6">
+              {messages.map((message) => (
                 <div
-                  className={cn(
-                    "max-w-[75%] rounded-xl px-4 py-3 shadow-md",
-                    message.sender === "user"
-                      ? "bg-blue-600 text-white rounded-br-none"
-                      : "bg-white text-gray-900 border border-gray-200 rounded-bl-none",
-                  )}
+                  key={message.id}
+                  className={cn("flex gap-3", message.sender === "user" ? "justify-end" : "justify-start")}
                 >
-                  <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                  {message.data_sources && message.data_sources.length > 0 && (
-                    <div className="mt-2 text-xs opacity-80">
-                      <span className="font-medium">Sumber data: </span>
-                      {message.data_sources.join(", ")}
-                    </div>
+                  {message.sender === "ai" && (
+                    <Avatar className="w-9 h-9 flex-shrink-0">
+                      <AvatarFallback className="bg-blue-600 text-white text-sm font-semibold">
+                        AI
+                      </AvatarFallback>
+                    </Avatar>
                   )}
-                  <p
+                  <div
                     className={cn(
-                      "text-xs mt-1 opacity-70",
-                      message.sender === "user" ? "text-blue-100" : "text-gray-500",
+                      "max-w-[75%] rounded-xl px-4 py-3 shadow-sm",
+                      message.sender === "user"
+                        ? "bg-blue-600 text-white rounded-br-none"
+                        : "bg-white text-gray-800 border border-gray-200 rounded-bl-none"
                     )}
                   >
-                    {message.timestamp}
-                  </p>
+                    <p className="text-sm whitespace-pre-wrap leading-relaxed">{message.content}</p>
+                    {message.data_sources && message.data_sources.length > 0 && (
+                      <div className="mt-2 text-xs opacity-80">
+                        <span className="font-medium">Sumber data: </span>
+                        {message.data_sources.join(", ")}
+                      </div>
+                    )}
+                    <p className="text-xs mt-2 opacity-70">
+                      {message.timestamp}
+                    </p>
+                  </div>
+                  {message.sender === "user" && (
+                    <Avatar className="w-9 h-9 flex-shrink-0">
+                      <AvatarFallback className="bg-gray-600 text-white text-sm font-semibold">
+                        U
+                      </AvatarFallback>
+                    </Avatar>
+                  )}
                 </div>
-                {message.sender === "user" && (
+              ))}
+              {isTyping && (
+                <div className="flex gap-3">
                   <Avatar className="w-9 h-9 flex-shrink-0">
-                    <AvatarImage src="/placeholder.svg?height=36&width=36" alt="User Avatar" />
-                    <AvatarFallback className="bg-gray-600 text-white text-sm font-semibold">U</AvatarFallback>
+                    <AvatarFallback className="bg-blue-600 text-white text-sm font-semibold">
+                      AI
+                    </AvatarFallback>
                   </Avatar>
-                )}
-              </div>
-            ))}
-            {isTyping && (
-              <div className="flex gap-3">
-                <Avatar className="w-9 h-9 flex-shrink-0">
-                  <AvatarImage src="/placeholder.svg?height=36&width=36" alt="AI Avatar" />
-                  <AvatarFallback className="bg-blue-600 text-white text-sm font-semibold">AI</AvatarFallback>
-                </Avatar>
-                <div className="bg-white rounded-xl px-4 py-3 shadow-md border border-gray-200 rounded-bl-none">
-                  <div className="flex gap-1">
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                    <div
-                      className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
-                      style={{ animationDelay: "0.1s" }}
-                    ></div>
-                    <div
-                      className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
-                      style={{ animationDelay: "0.2s" }}
-                    ></div>
+                  <div className="bg-white rounded-xl px-4 py-3 shadow-sm border border-gray-200 rounded-bl-none">
+                    <div className="flex gap-1">
+                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                      <div
+                        className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
+                        style={{ animationDelay: "0.1s" }}
+                      ></div>
+                      <div
+                        className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
+                        style={{ animationDelay: "0.2s" }}
+                      ></div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
-            <div ref={messagesEndRef} />
-          </div>
-        </ScrollArea>
+              )}
+              <div ref={messagesEndRef} />
+            </div>
+          </ScrollArea>
+        </div>
 
         {/* Suggested Prompts & Input Area */}
-        <div className="bg-white border-t border-gray-200 p-6 shadow-lg">
-          <div className="w-full">
-            <div className="flex items-center justify-between mb-4">
+        <div className="bg-white border-t border-gray-200 p-4 lg:p-6 shadow-lg">
+          <div className="space-y-4 lg:space-y-6">
+            <div className="flex items-center justify-between">
               <h3 className="font-semibold text-lg text-gray-900">Saran Prompt</h3>
               <Button
                 variant="ghost"
                 size="sm"
-                className="text-blue-600 hover:bg-blue-50 transition-colors duration-200"
+                className="text-blue-600 hover:bg-blue-50 hover:text-blue-700"
               >
                 Sembunyikan
               </Button>
             </div>
+
             {/* Prompt Categories */}
-            <div className="flex gap-2 mb-4 flex-wrap">
+            <div className="flex gap-2 flex-wrap">
               {Object.keys(prompts).map((category) => (
                 <Button
                   key={category}
@@ -394,23 +415,24 @@ export default function Chatbot() {
                   size="sm"
                   onClick={() => setSelectedTab(category)}
                   className={cn(
-                    "rounded-full px-4 py-2 text-sm font-medium transition-all duration-200 ease-in-out",
+                    "rounded-full px-4 py-2 text-sm font-medium transition-all duration-200",
                     selectedTab === category
                       ? "bg-blue-600 text-white hover:bg-blue-700 shadow-sm"
-                      : "bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200 hover:border-gray-400",
+                      : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
                   )}
                 >
                   {category}
                 </Button>
               ))}
             </div>
+
             {/* Prompt Suggestions */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 mb-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {prompts[selectedTab as keyof typeof prompts]?.map((prompt, index) => (
                 <Button
                   key={index}
                   variant="outline"
-                  className="h-auto p-3 text-left justify-start text-sm text-gray-700 hover:bg-blue-50 hover:border-blue-200 bg-white shadow-sm transition-all duration-200 ease-in-out hover:scale-[1.01]"
+                  className="h-auto p-3 text-left justify-start text-sm bg-white hover:bg-gray-50 border-gray-200 text-gray-700 shadow-sm transition-all duration-200"
                   onClick={() => handlePromptClick(prompt)}
                   disabled={isTyping || connectionStatus !== "connected"}
                 >
@@ -418,6 +440,7 @@ export default function Chatbot() {
                 </Button>
               ))}
             </div>
+
             {/* Input Area */}
             <div className="flex items-end gap-3">
               <div className="flex-1 relative">
@@ -431,27 +454,25 @@ export default function Chatbot() {
                       ? "Tanyakan tentang data gym Anda..."
                       : "Menunggu koneksi ke server..."
                   }
-                  className="pr-20 py-4 rounded-xl border-gray-300 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-0 shadow-sm"
+                  className="pr-20 py-4 rounded-xl border-gray-300 bg-white text-gray-800 placeholder:text-gray-500 focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-0 shadow-sm"
                   disabled={isTyping || isLoading || connectionStatus !== "connected"}
                 />
                 <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="w-9 h-9 text-gray-500 hover:bg-gray-100 rounded-full"
+                    className="w-9 h-9 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full"
                     disabled
                   >
                     <Mic className="w-5 h-5" />
-                    <span className="sr-only">Input Suara</span>
                   </Button>
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="w-9 h-9 text-gray-500 hover:bg-gray-100 rounded-full"
+                    className="w-9 h-9 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full"
                     disabled
                   >
                     <Paperclip className="w-5 h-5" />
-                    <span className="sr-only">Lampirkan File</span>
                   </Button>
                 </div>
               </div>
@@ -460,21 +481,22 @@ export default function Chatbot() {
                 disabled={
                   !inputValue.trim() || isTyping || isLoading || !currentSession || connectionStatus !== "connected"
                 }
-                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl shadow-lg transition-all duration-200 ease-in-out hover:scale-[1.02]"
+                className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-xl shadow-sm transition-all duration-200"
               >
                 {isTyping ? "Mengirim..." : "Kirim"}
                 <Send className="w-4 h-4 ml-2" />
               </Button>
             </div>
+
             {/* Debug Info */}
             {process.env.NODE_ENV === "development" && (
-              <div className="mt-4 p-2 bg-gray-100 rounded-lg text-xs text-gray-600 border border-gray-200 shadow-inner">
+              <div className="mt-4 p-2 bg-gray-100 rounded-lg text-xs text-gray-600 border border-gray-200">
                 API URL: {API_CONFIG.BASE_URL} | Status: {connectionStatus}
               </div>
             )}
           </div>
         </div>
-      </div>
+      </main>
     </div>
   )
 }

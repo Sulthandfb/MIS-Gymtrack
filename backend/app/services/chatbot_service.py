@@ -150,11 +150,14 @@ class ChatbotService:
         current_month = today.month
         current_year = today.year
         
+        # Use 2024 as the data year since that's where your data is (as per user's instruction)
+        data_year = 2024 
+        
         # Income this month
         monthly_income = self.db.query(func.sum(IncomeTransaction.amount)).filter(
             and_(
                 func.extract('month', IncomeTransaction.transaction_date) == current_month,
-                func.extract('year', IncomeTransaction.transaction_date) == current_year
+                func.extract('year', IncomeTransaction.transaction_date) == data_year
             )
         ).scalar() or 0
         
@@ -162,7 +165,7 @@ class ChatbotService:
         monthly_expenses = self.db.query(func.sum(ExpenseTransaction.amount)).filter(
             and_(
                 func.extract('month', ExpenseTransaction.transaction_date) == current_month,
-                func.extract('year', ExpenseTransaction.transaction_date) == current_year
+                func.extract('year', ExpenseTransaction.transaction_date) == data_year
             )
         ).scalar() or 0
         
@@ -170,16 +173,32 @@ class ChatbotService:
         net_profit = float(monthly_income - monthly_expenses)
         margin_profit = (net_profit / float(monthly_income)) * 100 if monthly_income > 0 else 0
         
-        # Income by type
+        # Income by type (filtered by data_year)
         income_by_type = self.db.query(
             IncomeTransaction.income_type,
             func.sum(IncomeTransaction.amount).label('total')
+        ).filter(
+            func.extract('year', IncomeTransaction.transaction_date) == data_year
         ).group_by(IncomeTransaction.income_type).all()
         
-        # Last 6 months trend
+        # Last 6 months trend (using data_year for consistency)
         last_6_months_data = []
         for i in range(6):
-            month_date = (today.replace(day=1) - timedelta(days=i*30)).replace(day=1)
+            # Calculate month_date correctly to stay within data_year
+            month_delta = i # For consistency in month calculation
+            
+            # Start from current_month and go back, ensuring we stay in data_year
+            target_month = (current_month - month_delta - 1) % 12 + 1
+            target_year = data_year if (current_month - month_delta) > 0 else data_year - 1 # Adjust year if needed
+            
+            # Create a date object for the first day of the target month
+            # Handle cases where target_month is 0 or negative after modulo
+            if target_month <= 0:
+                target_month += 12
+                target_year -= 1
+
+            month_date = date(target_year, target_month, 1)
+
             month_income = self.db.query(func.sum(IncomeTransaction.amount)).filter(
                 and_(
                     func.extract('month', IncomeTransaction.transaction_date) == month_date.month,
@@ -192,7 +211,8 @@ class ChatbotService:
                     func.extract('year', ExpenseTransaction.transaction_date) == month_date.year
                 )
             ).scalar() or 0
-            last_6_months_data.append({
+            
+            last_6_months_data.insert(0, { # Insert at beginning to keep chronological order
                 'month': month_date.strftime('%B %Y'),
                 'income': float(month_income),
                 'expenses': float(month_expenses),
@@ -205,7 +225,8 @@ class ChatbotService:
             'net_profit': net_profit,
             'margin_profit': round(margin_profit, 2),
             'income_by_type': [{'type': i.income_type, 'total': float(i.total)} for i in income_by_type],
-            'last_6_months_trend': last_6_months_data
+            'last_6_months_trend': last_6_months_data,
+            'data_year': data_year # Indicate the year of the data
         }
     
     def get_feedback_data(self, filters: Dict[str, Any] = None) -> Dict[str, Any]:
@@ -330,27 +351,36 @@ class ChatbotService:
     def create_context_prompt(self, message: str, intent: str, context_data: Dict, conversation_history: List[str]) -> str:
         """Create context-aware prompt for AI"""
         
+        # Add a note about the data year if finance data is present
+        data_year_note = ""
+        if 'finance' in context_data and 'data_year' in context_data['finance']:
+            data_year_note = f" (Perlu diketahui, data internal ini sebagian besar berasal dari tahun {context_data['finance']['data_year']} dan bersifat simulasi/dummy, bukan real-time.)"
+        elif 'members' in context_data or 'trainers' in context_data or 'inventory' in context_data or 'product' in context_data:
+             data_year_note = " (Perlu diketahui, data internal ini bersifat simulasi/dummy dan mungkin tidak real-time.)"
+
+
         base_prompt = f"""
-Anda adalah asisten AI untuk aplikasi manajemen gym yang bernama GymBot. 
-Anda membantu pengguna mendapatkan informasi tentang data gym dengan ramah dan informatif.
+Anda adalah asisten AI bernama GymTrack AI untuk aplikasi manajemen gym yang bernama GymTrack.
+Tugas utama Anda adalah membantu pengguna mendapatkan informasi dan wawasan dari data internal gym mereka, serta memberikan saran dan tren umum terkait industri gym.
 
 Pertanyaan pengguna: "{message}"
 Intent yang terdeteksi: {intent}
 
 Riwayat percakapan terbaru:
-{chr(10).join(conversation_history[-3:]) if conversation_history else "Tidak ada riwayat percakapan"}
+{chr(10).join(conversation_history[-5:]) if conversation_history else "Tidak ada riwayat percakapan."}
 
-Data kontekstual yang tersedia:
+Data kontekstual internal gym yang tersedia:{data_year_note}
 {json.dumps(context_data, indent=2, ensure_ascii=False)}
 
-Berikan respons yang:
-1. Ramah dan profesional
-2. Berdasarkan data yang tersedia
-3. Memberikan insight yang berguna
-4. Menawarkan informasi tambahan jika relevan
-5. Gunakan bahasa Indonesia yang natural
+Berdasarkan pertanyaan pengguna, intent, riwayat percakapan, dan data kontekstual yang tersedia, berikan respons yang:
+1.  **Ramah, profesional, dan relevan:** Pastikan nada dan isi respons sesuai dengan persona asisten AI gym.
+2.  **Berbasis data internal (jika relevan):** Analisis data kontekstual yang diberikan untuk memberikan jawaban spesifik, metrik (seperti total member, member aktif, margin profit, dll.), dan ringkasan. Jika ada data, gunakan data tersebut sebagai dasar utama jawaban.
+3.  **Memberikan wawasan dan saran (jika data internal tidak langsung menjawab):** Jika pertanyaan bersifat umum atau membutuhkan perspektif yang lebih luas (misalnya, "cara meningkatkan retensi member"), gunakan pengetahuan umum Anda tentang tren dan praktik terbaik di industri gym. Fokus pada informasi yang berguna dan relevan dengan pengelolaan gym.
+4.  **Hanya membahas topik terkait gym/fitness:** Jawablah pertanyaan seputar manajemen gym, operasional, member, trainer, keuangan gym, tren fitness, dan hal-hal lain yang relevan dengan industri gym. **TOLONG JANGAN MENJAWAB PERTANYAAN DI LUAR KONTEKS GYM/FITNESS.**
+5.  **Gunakan bahasa Indonesia yang alami dan mudah dipahami.**
+6.  **Sertakan data sumber (jika digunakan):** Jika Anda merujuk pada data internal, sebutkan secara jelas bagian data mana yang Anda gunakan.
 
-Jika tidak ada data yang relevan, berikan respons yang menjelaskan hal tersebut dengan ramah.
+Jika tidak ada data internal yang relevan untuk menjawab pertanyaan secara spesifik, atau jika pertanyaan memerlukan pengetahuan eksternal, berikan jawaban berdasarkan pengetahuan umum Anda tentang industri gym, namun tetap dalam batasan topik gym/fitness.
+Jika pertanyaan sama sekali tidak relevan dengan gym/fitness, atau jika Anda tidak bisa memberikan jawaban yang akurat, jelaskan dengan sopan bahwa Anda hanya dapat membantu dengan topik terkait gym.
 """
-        
         return base_prompt

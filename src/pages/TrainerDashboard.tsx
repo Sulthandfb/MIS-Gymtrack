@@ -10,6 +10,10 @@ import {
   Heart,
   Sparkles,
   AlertCircle,
+  TrendingUp,
+  Users,
+  Target,
+  ChevronDownIcon,
 } from "lucide-react"
 import {
   BarChart,
@@ -27,7 +31,6 @@ import {
   ReferenceLine,
 } from "recharts"
 import { AppSidebar } from "@/components/Sidebar"
-import { StatCard } from "@/components/StatCard"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -155,20 +158,17 @@ export default function TrainerDashboard() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-3 lg:px-4 rounded-lg flex items-center gap-2 shadow-sm text-xs lg:text-sm">
+            <button className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-3 lg:px-4 rounded-lg flex items-center gap-2 shadow-sm text-xs lg:text-sm">
               <FileText className="w-4 h-4" />
               <span className="hidden sm:inline">Generate Report</span>
-            </Button>
-            <Button
-              variant="outline"
-              className="border border-gray-300 text-gray-700 font-semibold py-2 px-3 lg:px-4 rounded-lg flex items-center gap-2 hover:bg-gray-50 text-xs lg:text-sm bg-white"
-            >
+            </button>
+            <button className="bg-white border border-gray-300 text-gray-700 font-semibold py-2 px-3 lg:px-4 rounded-lg flex items-center gap-2 hover:bg-gray-50 text-xs lg:text-sm">
               <Download className="w-4 h-4" />
               <span className="hidden sm:inline">Export Data</span>
-            </Button>
+            </button>
           </div>
         </header>
-        {/* Page Content */}
+
         <div className="p-4 lg:p-6 flex-1 overflow-y-auto min-h-0">
           {/* Tabs and Filters */}
           <div className="mb-6">
@@ -232,148 +232,296 @@ export default function TrainerDashboard() {
               </div>
             </div>
           </div>
-          {/* Content Area */}
+
           <div className="grid grid-cols-12 gap-4 lg:gap-6">
+            {/* Left & Center Column */}
             <div className="col-span-12 xl:col-span-8 space-y-4 lg:space-y-6">
-              {/* Stats Cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 lg:gap-6">
-                <StatCard
-                  title="Jumlah Kelas Total Keseluruhan" // Changed title
-                  value={stats.total_classes_overall} // Changed value source
-                  icon={Calendar}
-                  trend={{ value: 1.6, isPositive: true }}
-                  color="blue"
-                />
-                <StatCard
-                  title="Jumlah Trainer Keseluruhan" // Changed title
-                  value={stats.total_trainers_overall} // Changed value source
-                  icon={UserPlus}
-                  trend={{ value: 2, isPositive: true }}
-                  color="orange"
-                />
-                <StatCard
-                  title="Kelas dengan Engagement Tinggi"
-                  value={stats.high_engagement_classes}
-                  icon={Heart}
-                  trend={{ value: 15, isPositive: true }}
-                  color="emerald"
-                />
-                <StatCard
-                  title="Rata-rata Kepuasan Kelas"
-                  value={stats.avg_satisfaction.toFixed(1)}
-                  icon={Sparkles}
-                  trend={{ value: 0.2, isPositive: true }}
-                  color="purple"
-                />
+              {/* Summary Cards - Updated to match MemberDashboard style */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-6">
+                <div className="bg-white p-3 lg:p-4 rounded-lg shadow-sm">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="text-xs lg:text-sm font-medium text-gray-600">Total Kelas</div>
+                    <Calendar className="w-4 lg:w-5 h-4 lg:h-5 text-gray-400" />
+                  </div>
+                  <div className="text-xl lg:text-3xl font-bold text-gray-900">{stats.total_classes_overall}</div>
+                  <div className="flex items-center text-xs text-green-600 mt-1">
+                    <TrendingUp className="w-3 lg:w-4 h-3 lg:h-4 mr-1" />
+                    <span className="text-xs">1.6% Naik</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-1 mt-2 lg:mt-3">
+                    <div className="bg-blue-500 h-1 rounded-full" style={{ width: "75%" }}></div>
+                  </div>
+                </div>
+
+                <div className="bg-white p-3 lg:p-4 rounded-lg shadow-sm">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="text-xs lg:text-sm font-medium text-gray-600">Total Trainer</div>
+                    <UserPlus className="w-4 lg:w-5 h-4 lg:h-5 text-gray-400" />
+                  </div>
+                  <div className="text-xl lg:text-3xl font-bold text-gray-900">{stats.total_trainers_overall}</div>
+                  <div className="flex items-center text-xs text-green-600 mt-1">
+                    <TrendingUp className="w-3 lg:w-4 h-3 lg:h-4 mr-1" />
+                    <span className="text-xs">2% Naik</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-1 mt-2 lg:mt-3">
+                    <div className="bg-orange-500 h-1 rounded-full" style={{ width: "60%" }}></div>
+                  </div>
+                </div>
+
+                <div className="bg-white p-3 lg:p-4 rounded-lg shadow-sm">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="text-xs lg:text-sm font-medium text-gray-600">High Engagement</div>
+                    <Heart className="w-4 lg:w-5 h-4 lg:h-5 text-gray-400" />
+                  </div>
+                  <div className="text-xl lg:text-3xl font-bold text-gray-900">{stats.high_engagement_classes}</div>
+                  <div className="flex items-center text-xs text-green-600 mt-1">
+                    <TrendingUp className="w-3 lg:w-4 h-3 lg:h-4 mr-1" />
+                    <span className="text-xs">15% Naik</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-1 mt-2 lg:mt-3">
+                    <div className="bg-green-500 h-1 rounded-full" style={{ width: "85%" }}></div>
+                  </div>
+                </div>
+
+                <div className="bg-white p-3 lg:p-4 rounded-lg shadow-sm">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="text-xs lg:text-sm font-medium text-gray-600">Avg Kepuasan</div>
+                    <Sparkles className="w-4 lg:w-5 h-4 lg:h-5 text-gray-400" />
+                  </div>
+                  <div className="text-xl lg:text-3xl font-bold text-gray-900">{stats.avg_satisfaction.toFixed(1)}</div>
+                  <div className="flex items-center text-xs text-green-600 mt-1">
+                    <TrendingUp className="w-3 lg:w-4 h-3 lg:h-4 mr-1" />
+                    <span className="text-xs">0.2% Naik</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-1 mt-2 lg:mt-3">
+                    <div className="bg-purple-500 h-1 rounded-full" style={{ width: "90%" }}></div>
+                  </div>
+                </div>
               </div>
+
               {/* Charts Row 1 */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
-                <Card className="shadow-sm">
-                  <CardHeader className="p-4 lg:p-6 pb-0">
-                    <CardTitle className="text-base lg:text-lg font-semibold text-gray-900">
-                      Jumlah Peserta per Kelas Offline
-                    </CardTitle>
-                    <p className="text-xs lg:text-sm text-gray-500">
-                      Perbandingan jumlah kelas yang dijalankan per trainer
-                    </p>
-                  </CardHeader>
-                  <CardContent className="p-4 lg:p-6 pt-4">
-                    <div className="h-64 lg:h-80">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={classParticipantsData}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                          <XAxis dataKey="trainer" stroke="#666" fontSize={12} />
-                          <YAxis stroke="#666" domain={[0, 32]} ticks={[0, 8, 16, 24, 32]} fontSize={12} />
-                          <Tooltip
-                            contentStyle={{
-                              backgroundColor: "white",
-                              border: "1px solid #e5e7eb",
-                              borderRadius: "8px",
-                            }}
-                          />
-                          <Bar dataKey="strength" fill={CHART_COLORS[0]} name="Strength" stackId="a" barSize={12} />
-                          <Bar dataKey="yoga" fill={CHART_COLORS[1]} name="Yoga" stackId="a" barSize={12} />
-                          <Bar dataKey="cardio" fill={CHART_COLORS[2]} name="Cardio" stackId="a" barSize={12} />
-                          <Bar dataKey="pilates" fill={CHART_COLORS[3]} name="HIIT" stackId="a" barSize={12} />
-                        </BarChart>
-                      </ResponsiveContainer>
-                    </div>
-                    <div className="bg-blue-50 p-3 rounded-lg mt-4">
-                      <p className="text-xs text-blue-700">
-                        <strong>Insight:</strong> Kelas Yoga oleh Scarlett J. memiliki tingkat kehadiran rendah
-                        (rata-rata 5 peserta per kelas jadwal atau metode pengajaran.
+                <div className="bg-white p-4 lg:p-6 rounded-lg shadow-sm">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-2">
+                    <div>
+                      <h3 className="text-base lg:text-lg font-semibold text-gray-900">
+                        Jumlah Peserta per Kelas Offline
+                      </h3>
+                      <p className="text-xs lg:text-sm text-gray-500">
+                        Perbandingan jumlah kelas yang dijalankan per trainer
                       </p>
                     </div>
-                  </CardContent>
-                </Card>
-                <Card className="shadow-sm">
-                  <CardHeader className="p-4 lg:p-6 pb-0">
-                    <CardTitle className="text-base lg:text-lg font-semibold text-gray-900">
-                      Tipe Kelas yang Sering Diambil
-                    </CardTitle>
-                    <p className="text-xs lg:text-sm text-gray-500">Distribusi jenis kelas berdasarkan popularitas</p>
-                  </CardHeader>
-                  <CardContent className="p-4 lg:p-6 pt-4">
-                    <div className="h-48 lg:h-56 flex items-center justify-center">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                          <Pie
-                            data={classTypeData}
-                            cx="50%"
-                            cy="50%"
-                            innerRadius={60}
-                            outerRadius={100}
-                            dataKey="value"
-                            isAnimationActive={false}
-                          >
-                            {classTypeData.map((entry, index) => (
-                              <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
-                            ))}
-                          </Pie>
-                          <Tooltip formatter={(value: any) => [`${value}%`, "Persentase"]} />
-                        </PieChart>
-                      </ResponsiveContainer>
-                    </div>
-                    <div className="flex flex-wrap justify-center gap-2 lg:gap-4 text-xs mt-4">
-                      {classTypeData.map((item, index) => (
-                        <div key={index} className="flex items-center gap-1.5">
-                          <div
-                            className="w-2.5 h-2.5 rounded-sm"
-                            style={{ backgroundColor: CHART_COLORS[index % CHART_COLORS.length] }}
-                          ></div>
-                          <span>{item.name}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-              {/* Satisfaction Trend Chart */}
-              <Card className="shadow-sm">
-                <CardHeader className="p-4 lg:p-6 pb-0">
-                  <CardTitle className="text-base lg:text-lg font-semibold text-gray-900">
-                    Trend Kepuasan User per Trainer
-                  </CardTitle>
-                  <p className="text-xs lg:text-sm text-gray-500">Rating kepuasan member (skala 1-5)</p>
-                </CardHeader>
-                <CardContent className="p-4 lg:p-6 pt-4">
+                    <button className="flex items-center gap-2 text-xs lg:text-sm border border-gray-300 px-3 py-1.5 rounded-md hover:bg-gray-50 self-start sm:self-auto">
+                      Bulanan <ChevronDownIcon className="w-4 h-4" />
+                    </button>
+                  </div>
                   <div className="h-64 lg:h-80">
                     <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={satisfactionTrendData}>
+                      <BarChart data={classParticipantsData}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                        <XAxis dataKey="week" stroke="#666" fontSize={12} />
-                        <YAxis domain={[3.5, 5.0]} stroke="#666" fontSize={12} />
-                        <ReferenceLine
-                          y={4.5}
-                          stroke="#ef4444"
-                          strokeDasharray="5 5"
-                          label={{ value: "Target", position: "insideTopRight", fill: "#ef4444" }}
-                        />
+                        <XAxis dataKey="trainer" stroke="#666" fontSize={12} />
+                        <YAxis stroke="#666" domain={[0, 32]} ticks={[0, 8, 16, 24, 32]} fontSize={12} />
                         <Tooltip
                           contentStyle={{
                             backgroundColor: "white",
                             border: "1px solid #e5e7eb",
                             borderRadius: "8px",
+                            boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
+                          }}
+                        />
+                        <Bar dataKey="strength" fill={CHART_COLORS[0]} name="Strength" stackId="a" barSize={12} />
+                        <Bar dataKey="yoga" fill={CHART_COLORS[1]} name="Yoga" stackId="a" barSize={12} />
+                        <Bar dataKey="cardio" fill={CHART_COLORS[2]} name="Cardio" stackId="a" barSize={12} />
+                        <Bar dataKey="pilates" fill={CHART_COLORS[3]} name="HIIT" stackId="a" barSize={12} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <div className="bg-blue-50 p-3 rounded-lg mt-4">
+                    <p className="text-xs text-blue-700">
+                      <strong>Insight:</strong> Kelas Yoga oleh Scarlett J. memiliki tingkat kehadiran rendah
+                      (rata-rata 5 peserta per kelas jadwal atau metode pengajaran.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="bg-white p-4 lg:p-6 rounded-lg shadow-sm">
+                  <div className="flex justify-between items-start mb-4">
+                    <div>
+                      <h3 className="text-base lg:text-lg font-semibold text-gray-900">
+                        Tipe Kelas yang Sering Diambil
+                      </h3>
+                      <p className="text-xs lg:text-sm text-gray-500">Distribusi jenis kelas berdasarkan popularitas</p>
+                    </div>
+                    <button className="text-xs border border-gray-300 px-2 py-1 rounded-md hover:bg-gray-50">
+                      Monthly
+                    </button>
+                  </div>
+                  <div className="h-48 lg:h-56 flex items-center justify-center">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={classTypeData}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={60}
+                          outerRadius={100}
+                          dataKey="value"
+                          isAnimationActive={false}
+                        >
+                          {classTypeData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip formatter={(value: any) => [`${value}%`, "Persentase"]} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <div className="flex flex-wrap justify-center gap-2 lg:gap-4 text-xs mt-4">
+                    {classTypeData.map((item, index) => (
+                      <div key={index} className="flex items-center gap-1.5">
+                        <div
+                          className="w-2.5 h-2.5 rounded-sm"
+                          style={{ backgroundColor: CHART_COLORS[index % CHART_COLORS.length] }}
+                        ></div>
+                        <span>{item.name}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Satisfaction Trend Chart */}
+              <div className="bg-white p-4 lg:p-6 rounded-lg shadow-sm">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-2">
+                  <div>
+                    <h3 className="text-base lg:text-lg font-semibold text-gray-900">
+                      Trend Kepuasan User per Trainer
+                    </h3>
+                    <p className="text-xs lg:text-sm text-gray-500">Rating kepuasan member (skala 1-5)</p>
+                  </div>
+                  <button className="flex items-center gap-2 text-xs lg:text-sm border border-gray-300 px-3 py-1.5 rounded-md hover:bg-gray-50 self-start sm:self-auto">
+                    Bulanan <ChevronDownIcon className="w-4 h-4" />
+                  </button>
+                </div>
+                <div className="h-64 lg:h-80">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={satisfactionTrendData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                      <XAxis dataKey="week" stroke="#666" fontSize={12} />
+                      <YAxis domain={[3.5, 5.0]} stroke="#666" fontSize={12} />
+                      <ReferenceLine
+                        y={4.5}
+                        stroke="#ef4444"
+                        strokeDasharray="5 5"
+                        label={{ value: "Target", position: "insideTopRight", fill: "#ef4444" }}
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: "white",
+                          border: "1px solid #e5e7eb",
+                          borderRadius: "8px",
+                          boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
+                        }}
+                      />
+                      {Object.keys(satisfactionTrendData[0] || {})
+                        .filter((key) => key !== "week")
+                        .map((trainerNameKey, index) => (
+                          <Line
+                            key={trainerNameKey}
+                            type="monotone"
+                            dataKey={trainerNameKey}
+                            stroke={CHART_COLORS[index % CHART_COLORS.length]}
+                            strokeWidth={2}
+                            name={trainerNameKey.charAt(0).toUpperCase() + trainerNameKey.slice(1)}
+                            dot={{ r: 4, fill: CHART_COLORS[index % CHART_COLORS.length] }}
+                          />
+                        ))}
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              {/* Trainer Performance Table */}
+              <div className="bg-white p-4 lg:p-6 rounded-lg shadow-sm">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-2">
+                  <div>
+                    <h3 className="text-base lg:text-lg font-semibold text-gray-900">Tabel Kinerja Trainer</h3>
+                    <p className="text-xs lg:text-sm text-gray-500">Perbandingan Kinerja Semua Trainer Aktif</p>
+                  </div>
+                  <div className="relative">
+                    <Search className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <Input
+                      type="text"
+                      placeholder="Filter by name"
+                      className="pl-10 pr-4 py-2 w-64"
+                      value={filterName}
+                      onChange={(e) => setFilterName(e.target.value)}
+                    />
+                  </div>
+                </div>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-gray-50">
+                        <TableHead className="font-semibold text-gray-900">Nama</TableHead>
+                        <TableHead className="font-semibold text-gray-900">Spesialisasi</TableHead>
+                        <TableHead className="font-semibold text-gray-900">Kelas</TableHead>
+                        <TableHead className="font-semibold text-gray-900">Feedback</TableHead>
+                        <TableHead className="font-semibold text-gray-900">Retensi</TableHead>
+                        <TableHead className="font-semibold text-gray-900">Member Aktif</TableHead>
+                        <TableHead className="font-semibold text-gray-900">Status</TableHead>
+                        <TableHead className="font-semibold text-gray-900">Action</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredTrainerPerformanceData.map((trainer) => (
+                        <TableRow key={trainer.id} className="hover:bg-gray-50">
+                          <TableCell className="font-medium text-gray-900">{trainer.name}</TableCell>
+                          <TableCell className="text-sm">{trainer.specialization}</TableCell>
+                          <TableCell className="text-sm">{trainer.classes}</TableCell>
+                          <TableCell className="text-sm">{trainer.feedback}/5</TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className={getStatusColor(trainer.status)}>
+                              {trainer.retention}%
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-sm">{trainer.activeMembers}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className={getStatusColor(trainer.status)}>
+                              {trainer.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Button variant="outline" size="sm" onClick={() => handleViewTrainerDetail(trainer.id)}>
+                              Detail
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+
+              {/* Bottom Charts */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
+                <div className="bg-white p-4 lg:p-6 rounded-lg shadow-sm">
+                  <div className="mb-4">
+                    <h3 className="text-sm lg:text-base font-semibold text-gray-800">Analitik Konversi</h3>
+                    <p className="text-xs lg:text-sm text-gray-500">Rating kepuasan member (skala 1-5)</p>
+                  </div>
+                  <div className="h-48 lg:h-64">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={satisfactionTrendData}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                        <XAxis dataKey="week" stroke="#666" fontSize={12} />
+                        <YAxis domain={[3.5, 5.0]} stroke="#666" fontSize={12} />
+                        <Tooltip
+                          contentStyle={{
+                            backgroundColor: "white",
+                            border: "1px solid #e5e7eb",
+                            borderRadius: "8px",
+                            boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
                           }}
                         />
                         {Object.keys(satisfactionTrendData[0] || {})
@@ -392,149 +540,43 @@ export default function TrainerDashboard() {
                       </LineChart>
                     </ResponsiveContainer>
                   </div>
-                </CardContent>
-              </Card>
-              {/* Trainer Performance Table */}
-              <Card className="shadow-sm">
-                <CardHeader className="p-4 lg:p-6 pb-0">
-                  <CardTitle className="text-base lg:text-lg font-semibold text-gray-900">
-                    Tabel Kinerja Trainer
-                  </CardTitle>
-                  <p className="text-xs lg:text-sm text-gray-500">Perbandingan Kinerja Semua Trainer Aktif</p>
-                  <div className="relative mt-2">
-                    <Search className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                    <Input
-                      type="text"
-                      placeholder="Filter by name"
-                      className="pl-10 pr-4 py-2 w-64"
-                      value={filterName}
-                      onChange={(e) => setFilterName(e.target.value)}
-                    />
-                  </div>
-                </CardHeader>
-                <CardContent className="p-4 lg:p-6 pt-4">
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow className="bg-gray-50">
-                          <TableHead className="font-semibold text-gray-900">Nama</TableHead>
-                          <TableHead className="font-semibold text-gray-900">Spesialisasi</TableHead>
-                          <TableHead className="font-semibold text-gray-900">Kelas</TableHead>
-                          <TableHead className="font-semibold text-gray-900">Feedback</TableHead>
-                          <TableHead className="font-semibold text-gray-900">Retensi</TableHead>
-                          <TableHead className="font-semibold text-gray-900">Member Aktif</TableHead>
-                          <TableHead className="font-semibold text-gray-900">Status</TableHead>
-                          <TableHead className="font-semibold text-gray-900">Action</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {filteredTrainerPerformanceData.map((trainer) => (
-                          <TableRow key={trainer.id} className="hover:bg-gray-50">
-                            <TableCell className="font-medium text-gray-900">{trainer.name}</TableCell>
-                            <TableCell className="text-sm">{trainer.specialization}</TableCell>
-                            <TableCell className="text-sm">{trainer.classes}</TableCell>
-                            <TableCell className="text-sm">{trainer.feedback}/5</TableCell>
-                            <TableCell>
-                              <Badge variant="outline" className={getStatusColor(trainer.status)}>
-                                {trainer.retention}%
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="text-sm">{trainer.activeMembers}</TableCell>
-                            <TableCell>
-                              <Badge variant="outline" className={getStatusColor(trainer.status)}>
-                                {trainer.status}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>
-                              <Button variant="outline" size="sm" onClick={() => handleViewTrainerDetail(trainer.id)}>
-                                Detail
-                              </Button>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                </CardContent>
-              </Card>
-              {/* Bottom Charts */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
-                <Card className="shadow-sm">
-                  <CardHeader className="p-4 lg:p-6 pb-0">
-                    <CardTitle className="text-base lg:text-lg font-semibold text-gray-900">
-                      Analitik Konversi
-                    </CardTitle>
-                    <p className="text-xs lg:text-sm text-gray-500">Rating kepuasan member (skala 1-5)</p>
-                  </CardHeader>
-                  <CardContent className="p-4 lg:p-6 pt-4">
-                    <div className="h-48 lg:h-64">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={satisfactionTrendData}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                          <XAxis dataKey="week" stroke="#666" fontSize={12} />
-                          <YAxis domain={[3.5, 5.0]} stroke="#666" fontSize={12} />
-                          <Tooltip
-                            contentStyle={{
-                              backgroundColor: "white",
-                              border: "1px solid #e5e7eb",
-                              borderRadius: "8px",
-                            }}
-                          />
-                          {Object.keys(satisfactionTrendData[0] || {})
-                            .filter((key) => key !== "week")
-                            .map((trainerNameKey, index) => (
-                              <Line
-                                key={trainerNameKey}
-                                type="monotone"
-                                dataKey={trainerNameKey}
-                                stroke={CHART_COLORS[index % CHART_COLORS.length]}
-                                strokeWidth={2}
-                                name={trainerNameKey.charAt(0).toUpperCase() + trainerNameKey.slice(1)}
-                                dot={{ r: 4, fill: CHART_COLORS[index % CHART_COLORS.length] }}
-                              />
-                            ))}
-                        </LineChart>
-                      </ResponsiveContainer>
-                    </div>
-                  </CardContent>
-                </Card>
-                <Card className="shadow-sm">
-                  <CardHeader className="p-4 lg:p-6 pb-0">
-                    <CardTitle className="text-base lg:text-lg font-semibold text-gray-900">
-                      Evaluasi Per Kursus
-                    </CardTitle>
+                </div>
+
+                <div className="bg-white p-4 lg:p-6 rounded-lg shadow-sm">
+                  <div className="mb-4">
+                    <h3 className="text-sm lg:text-base font-semibold text-gray-800">Evaluasi Per Kursus</h3>
                     <p className="text-xs lg:text-sm text-gray-500">Perbandingan efektivitas kursus offline vs AI</p>
-                  </CardHeader>
-                  <CardContent className="p-4 lg:p-6 pt-4">
-                    <div className="h-48 lg:h-64">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={courseComparisonData} layout="vertical">
-                          <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis type="number" domain={[0, 100]} fontSize={12} />
-                          <YAxis type="category" dataKey="type" fontSize={12} />
-                          <Tooltip />
-                          <Bar dataKey="offline" fill={CHART_COLORS[0]} name="Kursus Offline" barSize={10} />
-                          <Bar dataKey="online" fill="#e5e7eb" name="AI" barSize={10} />
-                        </BarChart>
-                      </ResponsiveContainer>
-                    </div>
-                  </CardContent>
-                </Card>
+                  </div>
+                  <div className="h-48 lg:h-64">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={courseComparisonData} layout="vertical">
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis type="number" domain={[0, 100]} fontSize={12} />
+                        <YAxis type="category" dataKey="type" fontSize={12} />
+                        <Tooltip />
+                        <Bar dataKey="offline" fill={CHART_COLORS[0]} name="Kursus Offline" barSize={10} />
+                        <Bar dataKey="online" fill="#e5e7eb" name="AI" barSize={10} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
               </div>
             </div>
+
             {/* Right Sidebar */}
             <div className="col-span-12 xl:col-span-4 space-y-4 lg:space-y-6">
               {/* AI Insights */}
               <AIInsights insights={insights} />
+              
               {/* Alerts & Recommendations */}
-              <Card className="shadow-sm">
-                <CardHeader className="p-4 lg:p-6 pb-0">
-                  <CardTitle className="text-base font-semibold flex items-center gap-2">
+              <div className="bg-white p-4 lg:p-6 rounded-lg shadow-sm">
+                <div className="mb-4">
+                  <h3 className="text-base font-semibold flex items-center gap-2">
                     <AlertTriangle className="w-5 h-5 text-orange-500" />
                     ALERT
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-4 lg:p-6 pt-4 space-y-3">
+                  </h3>
+                </div>
+                <div className="space-y-3">
                   {alerts.map((alert, index) => (
                     <div
                       key={index}
@@ -595,8 +637,8 @@ export default function TrainerDashboard() {
                       </div>
                     </div>
                   ))}
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             </div>
           </div>
         </div>
